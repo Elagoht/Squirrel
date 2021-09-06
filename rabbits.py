@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+
+# FIX ISSUES WITH EMPTY DATABASES
+
 """
 Rabbits Module is created by Furkan Baytekin
 My GitHub profile: https://github.com/Elagoht
@@ -108,10 +111,12 @@ class ValueBase:
 		else: return sorted(self._cells,key=lambda x:str(x[byColumn]) if x[byColumn]!=None else -float("inf"),reverse=not asc)
 	@property
 	def __maxlen__(self):
-		lens=[]
-		for i in self._cells:
-			lens.append(len(i))
-		return max(lens)
+		if len(self)>0:
+			lens=[]
+			for i in self._cells:
+				lens.append(len(i))
+			return max(lens)
+		else: return 0
 	def getColumns(self,*columns):
 		if self.__maxlen__>max(columns):
 			result=[]
@@ -122,7 +127,7 @@ class ValueBase:
 					except: row.append(None)
 				result.append(row)
 			return type(self)(*result)
-		else: raise IndexError("Index out of range")
+		else: return self
 	def getColumn(self,column:int):
 		if self.__maxlen__>column:
 			result=[]
@@ -130,7 +135,7 @@ class ValueBase:
 				try: result.append(rows[column])
 				except: result.append(None)
 			return tuple(result)
-		else: raise IndexError("Index out of range")
+		else: return []
 	def addCsv(self,filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
 		with open(filePath,"r",encoding=encoding) as file:
 			for row in file.readlines()[1:] if ignoreHeaders else file.readlines():
@@ -151,10 +156,12 @@ class ValueBase:
 				for index,cell in enumerate(row):
 					file.write(str(cell)+("," if index<len(row)-1 else "\n"))
 	def transpose(self,inPlace=True):
-		lens=max([len(row) for row in self._cells])
-		if inPlace:
-			self._cells=type(self)(*self.getColumns(*range(lens)))
-		else: return type(self)(*self.getColumns(*range(lens)))
+		if len(self)>0:
+			lens=max([len(row) for row in self._cells])
+			if inPlace:
+				self._cells=[*self.getColumns(*range(lens))]
+			else: return type(self)(*self.getColumns(*range(lens)))
+		elif not inPlace: return self
 	def fillNull(self):
 		exec("self.transpose(True);"*2)
 	def fillNone(self,fillWith,includeNulls=False):
@@ -194,27 +201,33 @@ class ValueBase:
 						if nth>=count: break
 			if nth>=count: break
 	def count(self,val,onColumns=[])->int:
-		if onColumns==[]: onColumns=self.allColumns
-		data=self.getColumns(*onColumns)
-		count=0
-		for row in data:
-			count+=row.count(val)
-		return count
+		if len(self)>0:
+			if onColumns==[]: onColumns=self.allColumns
+			data=self.getColumns(*onColumns)
+			count=0
+			for row in data:
+				count+=row.count(val)
+			return count
+		else: return 0
 	def mirror(self,inPlace=True):
-		columns=list(range(self.__maxlen__))
-		columns.reverse()
-		transformed=self.getColumns(*columns)
-		transformed.transpose(True)
-		if inPlace: self._cells=transformed
-		else: return transformed
+		if len(self)>0:
+			columns=list(range(self.__maxlen__))
+			columns.reverse()
+			transformed=self.getColumns(*columns)
+			transformed.transpose(True)
+			if inPlace: self._cells=transformed
+			else: return transformed
+		elif not inPlace: return self
 	def flip(self,inPlace=True):
-		rows=list(range(len(self)))
-		rows.reverse()
-		transformed=[]
-		for i in rows:
-			transformed.append(self._cells[i])
-		if inPlace: self._cells=transformed
-		else: return type(self)(*transformed)
+		if len(self)>0:
+			rows=list(range(len(self)))
+			rows.reverse()
+			transformed=[]
+			for i in rows:
+				transformed.append(self._cells[i])
+			if inPlace: self._cells=transformed
+			else: return type(self)(*transformed)
+		elif not inPlace: return self
 	def rotate(self,mode=1,inPlace=True):
 		"""
 		mode:\n
@@ -223,20 +236,23 @@ class ValueBase:
 		 1 -> 90 degrees clockwise\n
 		 2 -> 180 degrees
 		"""
-		copy=type(self)(*self.data)
-		if mode==1:
-			copy.transpose(True)
-			copy.mirror()
-		if mode==-1:
-			copy.mirror()
-			copy.transpose(True)
-		if mode==2:
-			copy.mirror()
-			copy.flip()
-		if inPlace: self._cells=copy
-		else: return copy
+		if len(self)>0:
+			copy=type(self)(*self.data)
+			if mode==1:
+				copy.transpose(True)
+				copy.mirror()
+			if mode==-1:
+				copy.mirror()
+				copy.transpose(True)
+			if mode==2:
+				copy.mirror()
+				copy.flip()
+			if inPlace: self._cells=copy
+			else: return copy
+		elif not inPlace: return self
 	def clone(self):
-		return type(self)(*self)
+		if len(self): return type(self)(*self)
+		else: return type(self)()
 	def print(self,prefix:str=None,suffix:str=None):
 		if prefix!=None: print(str(prefix),end="")
 		print(self.__repr__()+", Items=[")
@@ -253,10 +269,11 @@ class ValueBase:
 		it changes the values less than 3 on all columns, to -inf.\n
 		if columns parameter is [], it applies to all columns.
 		"""
-		if columns==[]: columns=self.allColumns
-		for row in range(len(self)):
-			for col in columns:
-				self[row][col]=self.__convert__(function(self[row][col]))
+		if len(self)>0:
+			if columns==[]: columns=self.allColumns
+			for row in range(len(self)):
+				for col in columns:
+					self[row][col]=self.__convert__(function(self[row][col]))
 	def applyMany(self,functions:Iterable,columns:Iterable[Iterable[int]]):
 		for i in zip(functions,columns):
 			self.apply(*i)
@@ -264,15 +281,17 @@ class ValueBase:
 	def allColumns(self):
 		return range(len(self.transpose(False).transpose(False)[0]))
 	def removeDuplicates(self,startFromBottom=False,inPlace=True):
-		data=self.clone()
-		if startFromBottom: data.flip()
-		result=[]
-		for row in data:
-			if not (row in result): result.append(row)
-		result=type(self)(*result)
-		if startFromBottom: result.flip()
-		if inPlace: self._cells=result._cells
-		else: return result
+		if len(self)>0:
+			data=self.clone()
+			if startFromBottom: data.flip()
+			result=[]
+			for row in data:
+				if not (row in result): result.append(row)
+			result=type(self)(*result)
+			if startFromBottom: result.flip()
+			if inPlace: self._cells=result._cells
+			else: return result
+		elif not inPlace: return self
 	def merge(self,With,protectDataType:bool=False,addDuplicates=False,inPlace:bool=True):
 		data=self.clone()
 		if protectDataType: data.__class__=ValueBase
@@ -303,56 +322,78 @@ class __SubBase__(ValueBase):
 
 class __NumBase__(__SubBase__):
 	def sort(self,byColumn:int=0,asc=True,inPlace=True):
-		if inPlace: self._cells.sort(key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
-		else: return sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
+		if len(self)>0:
+			if inPlace: self._cells.sort(key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
+			else: return sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
+		return self
 	def sortColumn(self,column):
-		data=sorted(self.getColumn(column))
-		return data
+		if len(self)>0:
+			data=sorted(self.getColumn(column))
+			return data
+		else: return self
 	def median(self,column):
-		data=self.sortColumn(column)
-		length=len(data)
-		if length%2==0: return (data[int(length/2-1)]+data[int(length/2)])/2
-		else: return data[int(length/2)]
+		if len(self)>0:
+			data=self.sortColumn(column)
+			length=len(data)
+			if length%2==0: return (data[int(length/2-1)]+data[int(length/2)])/2
+			else: return data[int(length/2)]
+		else: return None
 	def modes(self,column):
-		data=self.getColumn(column)
-		dic={}
-		for item in data:
-			dic[item]=data.count(item)
-		max_=max(dic.values())
-		result=[]
-		for i,j in dic.items():
-			if j==max_: result.append(float(i))
-		return tuple(result)
+		if len(self)>0:
+			data=self.getColumn(column)
+			dic={}
+			for item in data:
+				dic[item]=data.count(item)
+			max_=max(dic.values())
+			result=[]
+			for i,j in dic.items():
+				if j==max_: result.append(float(i))
+			return tuple(result)
+		else: return None,
 	def mean(self,column):
-		data=self.getColumn(column)
-		return sum(data)/len(data)
-	def min(self,column): return float(min(self.getColumn(column)))
-	def max(self,column): return float(max(self.getColumn(column)))
+		if len(self)>0:
+			data=self.getColumn(column)
+			return sum(data)/len(data)
+		else: return None
+	def min(self,column):
+		if len(self)>0:
+			return float(min(self.getColumn(column)))
+		else: return None
+	def max(self,column):
+		if len(self)>0:
+			return float(max(self.getColumn(column)))
+		else: return None
 	def quartiles(self,column):
 		"""Returns a tuple contains first and third quartiles."""
-		data=self.sortColumn(column)
-		length=len(data)
-		if length%2==1: data.pop(int(length/2))
-		q1=data[:int(length/2)]
-		q3=data[int(length/2):]
-		result=type(self)(q1,q3)
-		result.transpose()
-		return float(result.median(0)),float(result.median(1))
+		if len(self)>0:
+			data=self.sortColumn(column)
+			length=len(data)
+			if length%2==1: data.pop(int(length/2))
+			q1=data[:int(length/2)]
+			q3=data[int(length/2):]
+			result=type(self)(q1,q3)
+			result.transpose()
+			return float(result.median(0)),float(result.median(1))
+		else: None,None
 	def compare(self,With:float,operator:str,byColumn):
-		"Operator must be <, <=, ==, !=, => or >."
-		if operator in ("<", "<=", "==", "!=", "=>", ">"):
-			try: With=float(With)
-			except: raise TypeError("With parameter must be able to convert float type.")
-			result=[]
-			for index,cell in enumerate(self.getColumn(byColumn)):
-				exec(f"if cell {operator} With: result.append(self[index])")
-			return type(self)(*result)
-		else: raise ValueError("Operator must be <, <=, ==, !=, => or >.")
+		"Operator must be <, <=, ==, !=, >= or >."
+		if len(self)>0:
+			if operator in ("<", "<=", "==", "!=", ">=", ">"):
+				try: With=float(With)
+				except: raise TypeError("With parameter must be able to convert float type.")
+				result=[]
+				for index,cell in enumerate(self.getColumn(byColumn)):
+					exec(f"if cell {operator} With: result.append(self[index])")
+				return type(self)(*result)
+			else: raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
+		else: return self
 	def compareMany(self,With:Iterable[float],operators:Iterable[str],byColumns:Iterable[int]):
-		result=self.clone()
-		for i in zip(With,operators,byColumns):
-			result=result.compare(*i)
-		return result
+		if len(self)>0:
+			result=self.clone()
+			for i in zip(With,operators,byColumns):
+				result=result.compare(*i)
+			return result
+		return self
 	def abs(self,columns:Iterable[int]=[]):
 		"""if columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:abs(x),columns)
