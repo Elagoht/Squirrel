@@ -270,12 +270,13 @@ db.print()
 
 ```py
 db.print()
-print("Quartiles\t:",  db.quartiles(0),"\n"
-      "Mean\t\t:"   ,  db.mean(1)     ,"\n"
-      "Median\t\t:" ,  db.median(1)   ,"\n"
-      "Modes\t\t:"  ,  db.modes(1)    ,"\n"
-      "Maximum\t\t:",  db.max(1)      ,"\n"
-      "Minimum\t\t:",  db.min(1)          )
+print("Quartiles\t:",       db.quartiles(0),"\n"
+      "Mean\t\t:"   ,       db.mean(1)     ,"\n"
+      "Median\t\t:" ,       db.median(1)   ,"\n"
+      "Modes\t\t:"  ,       db.modes(1)    ,"\n"
+      "Maximum\t\t:",       db.max(1)      ,"\n"
+      "Minimum\t\t:",       db.min(1)      ,"\n"
+      "18th Percentile\t:", db.percentile(18,1))
 
 #Output
 <IntBase with 7 rows>, Items=[
@@ -293,12 +294,43 @@ Median          : 5
 Modes           : (2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0) 
 Maximum         : 8.0 
 Minimum         : 2.0
+18th Percentile : 3.08
+```
+
+### Summary -> String
+
+```py
+print(db.summaries())
+
+#Output
+*** Column 0 ***
+Minimum         : 1.0
+1st Quarter     : 2.5
+Median          : 4
+2ns Quarter     : 5.5
+Maximum         : 7.0
+Mean            : 4.0
+*** Column 1 ***
+Minimum         : 2.0
+1st Quarter     : 3.5
+Median          : 5
+2ns Quarter     : 6.5
+Maximum         : 8.0
+Mean            : 5.0
+*** Column 2 ***
+Minimum         : 3.0
+1st Quarter     : 4.5
+Median          : 6
+2ns Quarter     : 7.5
+Maximum         : 9.0
+Mean            : 6.0
 ```
 
 ### RemoveDuplicates -> None | Valuebase | StrBase | IntBase | FloatBase
 
 ```py
-db+=(2,-(-pi),4) # Second row added as a new row.
+db+=(2,-(-pi),4) 
+# Second row added as a new row.
 db.removeDuplicates(True)
 db.print()
 
@@ -311,7 +343,8 @@ db.print()
  [5, 6, 7]
  [6, 7, 8]
  [7, 8, 9]
- [2, 3, 4] # Started from bottom and fist one has kept.
+ [2, 3, 4] 
+           # Started from bottom and fist one has kept.
 ]
 ```
 
@@ -392,7 +425,9 @@ db.compareMany([7,1,4],("<=",">","!="),(0,0,0)).print()
 
 ```py
 db.apply(lambda x:pow(x,2) if x%2 else -x,[])
+
 # Empty list for applying all columns. Simply doing not fill this parameter doas same.
+
 # It means if the value is odd, take square, else multiply with minus one.
 db.print()
 
@@ -444,6 +479,7 @@ db.print()
 
 ```py
 db.fillNull()
+db.print()
 
 #Output
 <IntBase with 4 rows>, Items=[
@@ -458,6 +494,7 @@ db.fillNull()
 
 ```py
 db.fillNone(-1)
+db.print()
 
 #Output
 <IntBase with 4 rows>, Items=[
@@ -467,5 +504,3 @@ db.fillNone(-1)
  [6, 2, 1]
 ]
 ```
-
-Well, the whole rabbits module is lesser than 450 lines of code but this manual more than 470 lines!

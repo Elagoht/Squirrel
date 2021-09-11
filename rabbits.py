@@ -1,7 +1,4 @@
 #!/usr/bin/python3
-
-# FIX ISSUES WITH EMPTY DATABASES
-
 """
 Rabbits Module is created by Furkan Baytekin
 My GitHub profile: https://github.com/Elagoht
@@ -137,19 +134,21 @@ class ValueBase:
 			return tuple(result)
 		else: return []
 	def addCsv(self,filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
-		with open(filePath,"r",encoding=encoding) as file:
-			for row in file.readlines()[1:] if ignoreHeaders else file.readlines():
-				rows=[]
-				for cell in row.split(sep):
-					try:
+		try:
+			with open(filePath,"r",encoding=encoding) as file:
+				for row in file.readlines()[1:] if ignoreHeaders else file.readlines():
+					rows=[]
+					for cell in row.split(sep):
 						try:
-							float(cell)
-							rows.append(float(cell))
-						except:
-							str(cell)
-							rows.append(cell.strip())
-					except: rows.append(None)
-				self+=rows
+							try:
+								float(cell)
+								rows.append(float(cell))
+							except:
+								str(cell)
+								rows.append(cell.strip())
+						except: rows.append(None)
+					self+=rows
+		except: raise FileNotFoundError
 	def saveCsv(self,filePath:str,encoding:str="UTF-8"):
 		with open(filePath,"w",encoding=encoding) as file:
 			for row in self:
@@ -270,13 +269,15 @@ class ValueBase:
 		if columns parameter is [], it applies to all columns.
 		"""
 		if len(self)>0:
-			if columns==[]: columns=self.allColumns
-			for row in range(len(self)):
+			data=self.clone()
+			data.fillNull()
+			if columns==[]: columns=data.allColumns
+			for row in range(len(data)):
 				for col in columns:
-					self[row][col]=self.__convert__(function(self[row][col]))
+					data[row][col]=self.__convert__(function(data[row][col])) if data[row][col]!=None else None
+				self._cells=data._cells
 	def applyMany(self,functions:Iterable,columns:Iterable[Iterable[int]]):
-		for i in zip(functions,columns):
-			self.apply(*i)
+		for i in zip(functions,columns): self.apply(*i)
 	@property
 	def allColumns(self):
 		return range(len(self.transpose(False).transpose(False)[0]))
@@ -297,84 +298,17 @@ class ValueBase:
 		if protectDataType: data.__class__=ValueBase
 		for row in With:
 			if addDuplicates:data+=row
-			else:
-				if len(data.queries([*row],[True for _ in row],[data.allColumns for _ in row]))==0:
-					data+=row
+			elif len(data.queries([*row],[True for _ in row],[data.allColumns for _ in row]))==0: data+=row
 		if inPlace: 
 			if protectDataType: self.__class__=ValueBase
 			self._cells=data._cells
-		else: return data
+		return data
 	def split(self,From:int):
 		"""### Example:\n
 			```python
 			db0, db1 = db.split(3)
 			```"""
 		return type(self)(*self[:From]),type(self)(*self[From:])
-
-class __SubBase__(ValueBase):
-	def addCsv(self,filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
-		with open(filePath,"r",encoding=encoding) as file:
-			for row in file.readlines()[1:] if ignoreHeaders else file.readlines():
-				rows=[]
-				for cell in row.split(sep):
-					rows.append(self.__convert__(cell))
-				self+=rows
-
-class __NumBase__(__SubBase__):
-	def sort(self,byColumn:int=0,asc=True,inPlace=True):
-		if len(self)>0:
-			if inPlace: self._cells.sort(key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
-			else: return sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
-		return self
-	def sortColumn(self,column):
-		if len(self)>0:
-			data=sorted(self.getColumn(column))
-			return data
-		else: return self
-	def median(self,column):
-		if len(self)>0:
-			data=self.sortColumn(column)
-			length=len(data)
-			if length%2==0: return (data[int(length/2-1)]+data[int(length/2)])/2
-			else: return data[int(length/2)]
-		else: return None
-	def modes(self,column):
-		if len(self)>0:
-			data=self.getColumn(column)
-			dic={}
-			for item in data:
-				dic[item]=data.count(item)
-			max_=max(dic.values())
-			result=[]
-			for i,j in dic.items():
-				if j==max_: result.append(float(i))
-			return tuple(result)
-		else: return None,
-	def mean(self,column):
-		if len(self)>0:
-			data=self.getColumn(column)
-			return sum(data)/len(data)
-		else: return None
-	def min(self,column):
-		if len(self)>0:
-			return float(min(self.getColumn(column)))
-		else: return None
-	def max(self,column):
-		if len(self)>0:
-			return float(max(self.getColumn(column)))
-		else: return None
-	def quartiles(self,column):
-		"""Returns a tuple contains first and third quartiles."""
-		if len(self)>0:
-			data=self.sortColumn(column)
-			length=len(data)
-			if length%2==1: data.pop(int(length/2))
-			q1=data[:int(length/2)]
-			q3=data[int(length/2):]
-			result=type(self)(q1,q3)
-			result.transpose()
-			return float(result.median(0)),float(result.median(1))
-		else: None,None
 	def compare(self,With:float,operator:str,byColumn):
 		"Operator must be <, <=, ==, !=, >= or >."
 		if len(self)>0:
@@ -385,8 +319,8 @@ class __NumBase__(__SubBase__):
 				for index,cell in enumerate(self.getColumn(byColumn)):
 					exec(f"if cell {operator} With: result.append(self[index])")
 				return type(self)(*result)
-			else: raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
-		else: return self
+			raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
+		return self
 	def compareMany(self,With:Iterable[float],operators:Iterable[str],byColumns:Iterable[int]):
 		if len(self)>0:
 			result=self.clone()
@@ -394,6 +328,75 @@ class __NumBase__(__SubBase__):
 				result=result.compare(*i)
 			return result
 		return self
+
+class __SubBase__(ValueBase):
+	def addCsv(self,filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
+		with open(filePath,"r",encoding=encoding) as file:
+			for row in file.readlines()[1:] if ignoreHeaders else file.readlines():
+				rows=[]
+				for cell in row.split(sep): rows.append(self.__convert__(cell))
+				self+=rows
+
+class __NumBase__(__SubBase__):
+	def sort(self,byColumn:int=0,asc=True,inPlace=True):
+		if len(self)>0:
+			if inPlace: self._cells=sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
+			else: return sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
+		return self
+	def sortColumn(self,column):
+		if len(self)>0:
+			data=list(self.getColumn(column))
+			while None in data:
+				data.remove(None)
+			return sorted(data)
+		return self
+	def median(self,column):
+		if len(self)>0: return self.percentile(50,column)
+		return None
+	def modes(self,column):
+		if len(self)>0:
+			data=self.sortColumn(column)
+			dic={}
+			for item in data: dic[item]=data.count(item)
+			max_=max(dic.values())
+			result=[]
+			for i,j in dic.items():
+				if j==max_: result.append(float(i))
+			return tuple(result)
+		return None,
+	def mean(self,column):
+		if len(self)>0:
+			data=self.sortColumn(column)
+			return sum(data)/len(data)
+		return None
+	def min(self,column):
+		if len(self)>0:
+			data=self.sortColumn(column)
+			return float(min(data))
+		return None
+	def max(self,column):
+		if len(self)>0: return float(max(self.sortColumn(column)))
+		return None
+	def quartiles(self,column):
+		"""Returns a tuple contains first and third quartiles."""
+		if len(self)>0: return self.percentile(25,column),self.percentile(75,column)
+		return None,None
+	def percentile(self,percent,column):
+		"""Percent parameter must be in range [0-100]."""
+		if len(self)>0:
+			if percent<0 or percent>100: raise ValueError("Percent parameter must be in range [0-100].")
+			data=self.sortColumn(column)
+			k=(len(data)-1)*percent/100
+			f=int(k)
+			c=int(k)+1 if k!=int(k) else int(k)
+			if f==c: return data[int(k)]
+			return data[int(c)]*(k-f)+data[int(f)]*(c-k)
+		return None
+	def decile(self,decim,column):
+		"""Percent parameter must be in range [0-100]."""
+		if len(self)>0:
+			if decim<0 or decim>10: raise ValueError("Percent parameter must be in range [0-10].")
+			return self.percentile(decim*10,column)
 	def abs(self,columns:Iterable[int]=[]):
 		"""if columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:abs(x),columns)
@@ -431,15 +434,44 @@ class __NumBase__(__SubBase__):
 		elif axis in ["y",0]: data.transpose()
 		else: raise ValueError("Axis must be 'x', 1 or 'y', 0")
 		result=[]
-		for i in data:
-			result.append(sum(i))
+		for i in data: result.append(sum(i))
 		return tuple(result)
-			
+	def summary(self,column): return f"""*** Column {column} ***
+Minimum\t\t: {self.min(column)}
+1st Quarter\t: {self.quartiles(column)[0]}
+Median\t\t: {self.median(column)}
+2ns Quarter\t: {self.quartiles(column)[1]}
+Maximum\t\t: {self.max(column)}
+Mean \t\t: {self.mean(column)}"""
+	def summaries(self,*columns):
+		"""Leave blank for get all columns."""
+		if columns==(): columns=self.allColumns
+		result=""
+		for column in columns:
+			result+=f"""\n*** Column {column} ***
+Minimum\t\t: {self.min(column)}
+1st Quarter\t: {self.quartiles(column)[0]}
+Median\t\t: {self.median(column)}
+2ns Quarter\t: {self.quartiles(column)[1]}
+Maximum\t\t: {self.max(column)}
+Mean \t\t: {self.mean(column)}"""
+		return result.replace("\n","",1)
 class StrBase(__SubBase__):
 	def __repr__(self): return f"<StrBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self)>0 else "<StrBase with no content>"
 	def __convert__(self,input):
 		try:return str(input).strip()
 		except: return None
+	def compare(self,With:float,operator:str,byColumn):
+		"Operator must be <, <=, ==, !=, >= or >."
+		if len(self)>0:
+			if operator in ("<", "<=", "==", "!=", ">=", ">"):
+				With=str(With)
+				result=[]
+				for index,cell in enumerate(self.getColumn(byColumn)):
+					exec(f"if cell {operator} With: result.append(self[index])")
+				return type(self)(*result)
+			else: raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
+		else: return self
 class FloatBase(__NumBase__):
 	def __repr__(self): return f"<FloatBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self)>0 else "<FloatBase with no content>"
 	def __convert__(self,input):
