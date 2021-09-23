@@ -4,6 +4,8 @@ Rabbits Module is created by Furkan Baytekin
 My GitHub profile: https://github.com/Elagoht
 """
 from typing import Iterable
+from pickle import dump, dumps, load, loads
+from base64 import b64encode, b64decode
 inf=float("inf")
 pi=3.141592653589793
 e=2.718281828459045
@@ -19,7 +21,7 @@ class StaticBase:
 				data.append(rows)
 		return data
 	@staticmethod
-	def exportCsv(data:Iterable[Iterable[int]],filePath:"str",encoding:str="UTF-8"):
+	def exportCsv(data:Iterable[Iterable[int]],filePath:str,encoding:str="UTF-8"):
 		with open(filePath,"w",encoding=encoding) as file:
 			for row in data:
 				for index,cell in enumerate(row): file.write(cell+("," if index<len(row)-1 else ""))
@@ -504,3 +506,27 @@ class IntBase(__NumBase__):
 	def __convert__(self,input):
 		try: return (((((((((int(input) if input!=-inf else -inf) if input!=inf else inf) if input!="inf" else inf) if input!="-inf" else -inf) if input!="e" else 3) if input!="-e" else -3) if input!=e else 3) if input!=-e else -3) if input!="pi" else 3) if input!="-pi" else -3
 		except: return None
+def saveDB(obj,filename):
+	"""This function can be use to store any type of object."""
+	with open(filename+".sqr","wb") as outp: dump(obj,outp,5)
+def loadDB(filename,type_=ValueBase):
+	"""This function can be use to restore any type of object."""
+	with open(filename+".sqr","rb") as inp: 
+		obj=load(inp)
+		if type_==ValueBase: return ValueBase(*obj)
+		elif type_==StrBase: return StrBase(*obj)
+		elif type_==IntBase: return IntBase(*obj)
+		elif type_==FloatBase: return FloatBase(*obj)
+		else: return obj
+def saveSecure(obj,filename):
+	"""This function can be use to store any type of object."""
+	with open(filename+".sqs","w") as outp: outp.write(b64encode(dumps(obj,5)).decode())
+def loadSecure(filename,type_=ValueBase):
+	"""This function can be use to restore any type of object."""
+	with open(filename+".sqs","r") as inp:
+		obj=loads(b64decode(inp.read()))
+		if type_==ValueBase: return ValueBase(*obj)
+		elif type_==StrBase: return StrBase(*obj)
+		elif type_==IntBase: return IntBase(*obj)
+		elif type_==FloatBase: return FloatBase(*obj)
+		else: return obj
