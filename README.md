@@ -1,4 +1,6 @@
-# Rabbits Module
+# Squirrel Module
+
+![Squirrel Logo](https://raw.githubusercontent.com/Elagoht/Squirrel/main/squirrel.png)
 
 ## Table of Content
 
@@ -11,21 +13,21 @@
 
 <h2 id="0">Introduction</h2>
 
-Rabbits is the best way to work with 2 dimensional lists. It is a lightweight alternative for pandas. Pandas is a fully functional module that supports lots of data visualisation module. But, if you want to use pandas in your project and if you planning to publish your project as an executable file, pandas needs lots of disk space. I realized it when I finished one of my project and I was proud of myself... So I had to reprogram it, with my own module.
+Squirrel is the best way to work with 2 dimensional lists. It is a lightweight alternative for pandas. Pandas is a fully functional module that supports lots of data visualisation module. But, if you want to use pandas in your project and if you planning to publish your project as an executable file, pandas needs lots of disk space. I realized it when I finished one of my project and I was proud of myself... So I had to reprogram it, with my own module. Also Squirrel can be used as a database module.
 
-You can still use rabbits instead of pandas on your data science projects if you want to reduce the app file size.
+You can still use squirrel instead of pandas on your data science projects if you want to reduce the app file size.
 
 <h2 id="1">Installation</h2>
 
-Fow now, before I upload it to PyPi, you can download rabbits.py and move to your workspace and import with command below in the [Setting Up](#2) section.
+Fow now, before I upload it to PyPi, you can download squirrel.py and move to your workspace and import with command below in the [Setting Up](#2) section.
 
 <h2 id="2">Setting Up</h2>
 
-Write the command below to import rabbits in your worksheet.
+Write the command below to import squirrel in your worksheet.
 
 ```py
-import rabbits as rb
-from rabbits import inf,pi,e
+import squirrel as sq
+from squirrel import inf,pi,e
 ```
 
 <h2 id="3">Documentary</h2>
@@ -73,12 +75,19 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | applyMany               | Apply more functions at the same time.         |
 | allColumns              | Returns a range object zero to column count.   |
 | print                   | Prints all data in database as pretty display. |
+| head                    | Prints first nth data as pretty display.       |
+| tail                    | Prints last nth data as pretty display.        |
+| columns                 | Returns all column names in a list.            |
+| allColumns              | Returns a range object for all columns.        |
+| c                       | Returns integer value of column.               |
+| renameColumns           | Renames columns.                               |
+| range                   | Returns a range object by taking column names. |
 
 #### Math Features
 
 |         Feature         |                     Example                    |
 | ----------------------- | ---------------------------------------------- |
-| inf, pi, e              | Yess infinite pie!                            |
+| inf, pi, e              | Yess infinite pie!                             |
 | None for NA             | None value used for NA.                        |
 | median                  | Returns median value of specified column.      |
 | mean                    | Returns mean value of specified column.        |
@@ -95,6 +104,9 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | floorDivide             | Floor divides all values on specified column.  |
 | modulus                 | Moduluses all values on specified column.      |
 | sum                     | Returns sums of all values on specified axis.  |
+| compare                 | Compares values and applies a querry by math.  |
+| compareMany             | Applies more than one compare.                 |
+
 
 #### Some Useful Features
 
@@ -116,12 +128,24 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | merge                   | Merges two database.                           |
 | split                   | Returns same type of databases in a tuple.     |
 
+#### DataBase Features
+
+|         Feature         |                     Example                    |
+| ----------------------- | ---------------------------------------------- |
+| clone                   | Gives a copy of database                       |
+| truncate                | Empties database.                              |
+| saveDB                  | Saves database to a .sqr file.                 |
+| loadDB                  | Loads a database from a .sqr file.             |
+| saveSecure              | Saves database as base64 encrypted .sqs file.  |
+| loadSecure              | Loads a database from a .sqs file.             |
+
+
 <h2 id="5">Examples</h2>
 
 ### ValueBase for Examples
 
 ```py
-db=rb.ValueBase(
+db=sq.ValueBase(
     ["Elagoht",17],    # Any type of iterable will be accepted.
     {"Furkan":0,21:0}, # Dictionaries only gives keys.
     ("Baytekin","1"),  
@@ -129,7 +153,9 @@ db=rb.ValueBase(
 db.print()
 
 # Output
-<ValueBase with 4 rows>, Items=[
+<ValueBase with 4 rows>
+Items=[
+*['Column 0', 'Column 1']*
  ['Elagoht', 17]
  ['Furkan', 21]
  ['Baytekin', '1']
@@ -137,16 +163,49 @@ db.print()
 ]
 ```
 
+### RenameColumns -> None
+
+```py
+db.renameColumns("Name","ID")
+db.print()
+
+# Output
+<ValueBase with 4 rows>
+Items=[
+*['Name', 'ID']*    
+ ['Elagoht', 17]
+ ['Furkan', 21]
+ ['Baytekin', '1']
+ [10, 20]
+]
+
+# First column shows column names and it has stars to be separated from others.
+```
+
+### C -> Int
+
+```py
+print(db.c("Name"))
+
+# Output 
+0 
+
+# Returns integer value of column. Works like "enumerate" item.
+```
+
 ### Query -> Valuebase | StrBase | IntBase | FloatBase
 
 ```py
-search=db.query("2",False,[0,1])
-print(search)
-print(search.data) # .data requires to print data instead of info.
+search=db.query("2",False,[db.c("ID")]) # This means search for "2" on only ID column.
+search.print() # Query method returns a database, so you can use database methods to result object.
 
 # Output
 <ValueBase with 2 rows>
-[['Furkan', 21], [10, 20]]
+Items=[
+*['Name', 'ID']*
+ ['Furkan', 21]
+ [10, 20]
+]
 ```
 
 ### Remove -> None
@@ -154,10 +213,12 @@ print(search.data) # .data requires to print data instead of info.
 ```py    
 search=db.query("2",False,[0,1]) # This gives 2 entries.
 db-=search[1] # Removes the 2nd one.
-print(db.data)
+db.print()
 
 # Output
-<ValueBase with 3 rows>, Items=[
+<ValueBase with 3 rows>
+Items=[
+*['Name', 'ID']*
  ['Elagoht', 17]
  ['Furkan', 21]
  ['Baytekin', '1']
@@ -168,7 +229,9 @@ print(db.data)
 
 ```py
 print(db.indexof(
-    db.query("2",False,[0,1])[0] # Given row must be exact, so you can use query and indices.
+    db.query("2",False,db.range("Name","ID"))[0]
+    # Given row must be exact, so you can use query and indices.
+    # range method returned range(0,1) object which Name=0 ID=1.
 ))
 
 # Output
@@ -182,7 +245,9 @@ db.sort(0)
 db.print("Hello this is a prefix string: ","Hello, this is a suffix string.")
 
 # Output
-Hello this is a prefix string: <ValueBase with 4 rows>, Items=[
+Hello this is a prefix string: <ValueBase with 4 rows>
+Items=[
+*['Name', 'ID']*
  ['Baytekin', '1']
  ['Elagoht', 17]
  ['Furkan', 21]
@@ -196,10 +261,12 @@ db.mirror()
 db.print()
 
 #Output
-<ValueBase with 4 rows>, Items=[
+<ValueBase with 4 rows>
+Items=[
+*['ID', 'Name']*
+ ['1', 'Baytekin']
  [17, 'Elagoht']
  [21, 'Furkan']
- ['1', 'Baytekin']
 ]
 ```
 
@@ -210,22 +277,27 @@ db.flip()
 db.print()
 
 #Output
-<ValueBase with 3 rows>, Items=[
- ['1', 'Baytekin']
+<ValueBase with 3 rows>
+Items=[
+*['ID', 'Name']*
  [21, 'Furkan']
  [17, 'Elagoht']
+ ['1', 'Baytekin']
 ]
 ```
 ### Rotate -> None | Valuebase | StrBase | IntBase | FloatBase
 
 ```py
 db.rotate(-1)
+db.renameColumns("Column","Names","Changed")
 db.print()
 
 #Output
-<ValueBase with 2 rows>, Items=[
- ['Baytekin', 'Furkan', 'Elagoht']
- ['1', 21, 17]
+<ValueBase with 2 rows>
+Items=[
+*['Column', 'Names', 'Changed']* # Column names changed but other names backed up for future rotation/transposation.
+ ['Furkan', 'Elagoht', 'Baytekin']
+ [21, 17, '1']
 ]
 ```
 
@@ -236,26 +308,30 @@ db.transpose()
 db.print()
 
 #Output
-<ValueBase with 3 rows>, Items=[
- ['Baytekin', '1']
+<ValueBase with 3 rows>
+Items=[
+*['ID', 'Name']*
  ['Furkan', 21]
  ['Elagoht', 17]
+ ['Baytekin', '1']
 ]
 ```
 
 ### Example IntBase
 
 ```py
-db=rb.IntBase()
-db+=1,2,pi
+db=sq.IntBase([1,2,pi],colNames=["First","Second","Third"]) # Instead of renameColumns, we used colNames parameter to name columns.
 db+=(2,-(-pi),4)
 db+=["pi",4,5]
 db.addMany([4,5,6],(5,6,7),(6,7,8),{7:0,8:1,9:2})
+db.print()
 
 db.print()
 
 #Output
-<IntBase with 7 rows>, Items=[
+<IntBase with 7 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1, 2, 3]
  [2, 3, 4]
  [3, 4, 5]
@@ -279,7 +355,9 @@ print("Quartiles\t:",       db.quartiles(0),"\n"
       "18th Percentile\t:", db.percentile(18,1))
 
 #Output
-<IntBase with 7 rows>, Items=[
+<IntBase with 7 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1, 2, 3]
  [2, 3, 4]
  [3, 4, 5]
@@ -335,7 +413,9 @@ db.removeDuplicates(True)
 db.print()
 
 #Output
-<IntBase with 7 rows>, Items=[
+<IntBase with 7 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1, 2, 3]
            # Other one has deleted.
  [3, 4, 5]
@@ -351,11 +431,13 @@ db.print()
 ### Change DataBase Type
 
 ```py
-db=rb.FloatBase(*db)
+db=sq.FloatBase(*db)
 db.print()
 
 #Output
-<FloatBase with 7 rows>, Items=[
+<FloatBase with 7 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1.00, 2.00, 3.00]
  [2.00, 3.00, 4.00]
  [3.00, 4.00, 5.00]
@@ -375,14 +457,18 @@ db0.print(2,"","I am the first part.")
 db1.print(2,"","I am the last part.")
 
 #Output
-<FloatBase with 5 rows>, Items=[
+<FloatBase with 5 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1.00, 2.00, 3.00]
  [2.00, 3.00, 4.00]
  [3.00, 4.00, 5.00]
  [4.00, 5.00, 6.00]
  [5.00, 6.00, 7.00]
 ] I am the first part.
-<FloatBase with 2 rows>, Items=[
+<FloatBase with 2 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [6.00, 7.00, 8.00]
  [7.00, 8.00, 9.00]
 ] I am the last part.
@@ -395,7 +481,9 @@ db.compare(5,"<=",0).print()
 # Get rows that are less than/equal to 5 in the first column.
 
 #Output
-<FloatBase with 5 rows>, Items=[
+<FloatBase with 5 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1.00, 2.00, 3.00]
  [2.00, 3.00, 4.00]
  [3.00, 4.00, 5.00]
@@ -411,7 +499,9 @@ db.compareMany([7,1,4],("<=",">","!="),(0,0,0)).print()
 # Get rows that are less than/equal to 7 in the first row, more than 1 in the second row, and not equal to 4 in the third row.
 
 #Output
-<FloatBase with 6 rows>, Items=[
+<FloatBase with 6 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1.00, 2.00, 3.00]
  [3.00, 4.00, 5.00]
  [4.00, 5.00, 6.00]
@@ -432,7 +522,9 @@ db.apply(lambda x:pow(x,2) if x%2 else -x,[])
 db.print()
 
 #Output
-<FloatBase with 7 rows>, Items=[
+<FloatBase with 7 rows>
+Items=[
+*['First', 'Second', 'Third']*
  [1.00, -2.00, 9.00]
  [-2.00, 9.00, -4.00]
  [9.00, -4.00, 25.00]
@@ -459,7 +551,7 @@ False
 ### Example IntBase for Missing Values
 
 ```py
-db=rb.IntBase((1,))
+db=sq.IntBase((1,))
 db+=3,
 db+=4,5
 db+=6,2,1
@@ -467,7 +559,9 @@ db+=6,2,1
 db.print()
 
 #Output
-<IntBase with 4 rows>, Items=[
+<IntBase with 4 rows>
+Items=[
+*['Column 0', 'Column 1', 'Column 2']*
  [1]
  [3]
  [4, 5]
@@ -482,7 +576,9 @@ db.fillNull()
 db.print()
 
 #Output
-<IntBase with 4 rows>, Items=[
+<IntBase with 4 rows>
+Items=[
+*['Column 0', 'Column 1', 'Column 2']*
  [1, None, None]
  [3, None, None]
  [4, 5, None]
@@ -497,7 +593,9 @@ db.fillNone(-1)
 db.print()
 
 #Output
-<IntBase with 4 rows>, Items=[
+<IntBase with 4 rows>
+Items=[
+*['Column 0', 'Column 1', 'Column 2']*
  [1, -1, -1]
  [3, -1, -1]
  [4, 5, -1]
