@@ -58,87 +58,91 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 ### Features
 #### Basic Features
 
-|         Feature         |                     Example                    |
-| ----------------------- | ---------------------------------------------- |
-| getitem, setitem        | Allows you get and set specified row.          |
-| add                     | Adds a row.                                    |
-| remove                  | Removes a row.                                 |
-| addMany                 | Adds multiple row in a time.                   |
-| indexof                 | Finds index number of a given row.             |
-| sort                    | Sorts data by specified column.                |
-| replace                 | Replaces old values with new specified amount. |
-| fillNull                | Fills null places with None.                   |
-| fillNone                | Fills None (and nulls) with specified value.   |
-| csv support             | Able to read, add and write csv files.         |
-| data                    | Returns a copy of data as 2D lists.            |
-| apply                   | Apply a function that return new values.       |
-| applyMany               | Apply more functions at the same time.         |
-| allColumns              | Returns a range object zero to column count.   |
-| print                   | Prints all data in database as pretty display. |
-| head                    | Prints first nth data as pretty display.       |
-| tail                    | Prints last nth data as pretty display.        |
-| columns                 | Returns all column names in a list.            |
-| allColumns              | Returns a range object for all columns.        |
-| c                       | Returns integer value of column.               |
-| renameColumns           | Renames columns.                               |
-| range                   | Returns a range object by taking column names. |
+|         Feature          |                     Example                    |
+| ------------------------ | ---------------------------------------------- |
+| getitem, setitem         | Allows you get and set specified row.          |
+| add                      | Adds a row.                                    |
+| remove                   | Removes a row.                                 |
+| addMany                  | Adds multiple row in a time.                   |
+| indexof                  | Finds index number of a given row.             |
+| sort                     | Sorts data by specified column.                |
+| replace                  | Replaces old values with new specified amount. |
+| fillNull                 | Fills null places with None.                   |
+| fillNone                 | Fills None (and nulls) with specified value.   |
+| csv support              | Able to read, add and write csv files.         |
+| data                     | Returns a copy of data as 2D lists.            |
+| apply                    | Apply a function that return new values.       |
+| applyMany                | Apply more functions at the same time.         |
+| allColumns               | Returns a range object zero to column count.   |
+| print                    | Prints all data in database as pretty display. |
+| head                     | Prints first nth data.                         |
+| tail                     | Prints last nth data.                          |
+| section                  | Prints specified section of data.              |
+| columns                  | Returns all column names in a list.            |
+| allColumns               | Returns a range object for all columns.        |
+| c                        | Returns integer value of column.               |
+| renameColumns            | Renames columns.                               |
+| range                    | Returns a range object by taking column names. |
 
 #### Math Features
 
-|         Feature         |                     Example                    |
-| ----------------------- | ---------------------------------------------- |
-| inf, pi, e              | Yess infinite pie!                             |
-| None for NA             | None value used for NA.                        |
-| median                  | Returns median value of specified column.      |
-| mean                    | Returns mean value of specified column.        |
-| mod                     | Returns mode values of specified column.       |
-| min                     | Returns min value of specified column.         |
-| max                     | Returns max value of specified column.         |
-| quartiles               | Returns 1st, 3rt quartile of specified column. |
-| abs                     | Converts values their absolute value.          |
-| oppositeSign            | Multiply values on specified columns with -1.  |
-| increase                | Increases all values on specified column.      |
-| decrease                | Decreases all values on specified column.      |
-| multiply                | Multiplies all values on specified column.     |
-| divide                  | Divides all values on specified column.        |
-| floorDivide             | Floor divides all values on specified column.  |
-| modulus                 | Moduluses all values on specified column.      |
-| sum                     | Returns sums of all values on specified axis.  |
-| compare                 | Compares values and applies a querry by math.  |
-| compareMany             | Applies more than one compare.                 |
+|         Feature          |                     Example                    |
+| ------------------------ | ---------------------------------------------- |
+| inf, pi, e               | Yess infinite pie!                             |
+| None for NA              | None value used for NA.                        |
+| median                   | Returns median value of specified column.      |
+| mean                     | Returns mean value of specified column.        |
+| mod                      | Returns mode values of specified column.       |
+| min                      | Returns min value of specified column.         |
+| max                      | Returns max value of specified column.         |
+| quartiles                | Returns 1st, 3rt quartile of specified column. |
+| abs                      | Converts values their absolute value.          |
+| oppositeSign             | Multiply values on specified columns with -1.  |
+| increase                 | Increases all values on specified column.      |
+| decrease                 | Decreases all values on specified column.      |
+| multiply                 | Multiplies all values on specified column.     |
+| divide                   | Divides all values on specified column.        |
+| floorDivide              | Floor divides all values on specified column.  |
+| modulus                  | Moduluses all values on specified column.      |
+| sum                      | Returns sums of all values on specified axis.  |
+| compare                  | Compares values and applies a querry by math.  |
+| compareMany              | Applies more than one compare.                 |
 
 
 #### Some Useful Features
 
-|         Feature         |                     Example                    |
-| ----------------------- | ---------------------------------------------- |
-| count                   | Counts specified value.                        |
-| query                   | Searchs values matched with quert string.      |
-| multiple query          | Applies multiple queries.                      |
-| transpose               | Transposes rows and columns.                   |
-| mirror                  | Flips the database on the y-axis.              |
-| flip                    | flips the database on the x-axis.              |
-| rotate                  | Rotates database 90, 180 and 270 degrees.      |
-| removeDuplicates        | Removes duplicate rows from database.          |
+|         Feature          |                     Example                    |
+| ------------------------ | ---------------------------------------------- |
+| transpose                | Transposes rows and columns.                   |
+| mirror                   | Flips the database on the y-axis.              |
+| flip                     | flips the database on the x-axis.              |
+| rotate                   | Rotates database 90, 180 and 270 degrees.      |
+| removeDuplicates         | Removes duplicate rows from database.          |
 
 #### Working With More Than One Database
 
-|         Feature         |                     Example                    |
-| ----------------------- | ---------------------------------------------- |
-| merge                   | Merges two database.                           |
-| split                   | Returns same type of databases in a tuple.     |
+|         Feature          |                     Example                    |
+| ------------------------ | ---------------------------------------------- |
+| merge                    | Merges two database.                           |
+| split                    | Returns same type of databases in a tuple.     |
 
 #### DataBase Features
 
-|         Feature         |                     Example                    |
-| ----------------------- | ---------------------------------------------- |
-| clone                   | Gives a copy of database                       |
-| truncate                | Empties database.                              |
-| saveDB                  | Saves database to a .sqr file.                 |
-| loadDB                  | Loads a database from a .sqr file.             |
-| saveSecure              | Saves database as base64 encrypted .sqs file.  |
-| loadSecure              | Loads a database from a .sqs file.             |
-
+|         Feature          |                     Example                    |
+| ------------------------ | ---------------------------------------------- |
+| count                    | Counts specified value.                        |
+| query                    | Searchs values matched with quert string.      |
+| multiple query           | Applies multiple queries.                      |
+| fetch                    | Gives search result as list objects.           |
+| fetch one                | Gives the first search result as list object.  |  
+| fetch by multi query     | Gives multiple filter results as list objects. |  
+| fetch one by multi query | Gives multiple filter results as list objects. |  
+| clone                    | Gives a copy of database                       |
+| truncate                 | Empties database.                              |
+| saveDB                   | Saves database to a .sqr file.                 |
+| loadDB                   | Loads a database from a .sqr file.             |
+| saveSecure               | Saves database as base64 encrypted .sqs file.  |
+| loadSecure               | Loads a database from a .sqs file.             |
 
 <h2 id="5">Examples</h2>
 
@@ -207,6 +211,15 @@ Items=[
  [10, 20]
 ]
 ```
+
+### Fetch -> List
+
+```py
+search=db.fetch("2",False,[db.c("ID")]) # Same query parameters with above.
+print(search) # Fetch method returns a list that contains lists.
+
+# Output
+[['Furkan', 21], [10, 20]]
 
 ### Remove -> None
 

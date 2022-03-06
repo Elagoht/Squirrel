@@ -19,4 +19,13 @@
 * Save and load functions added to use this module like a read database.
 * Truncate method added. 
 * Clone method updated for column name feature.
-* 
+
+## v0.0.3
+
+* Sorting by key method added.
+* Unused modules removed.
+* Saving CSVs now support column name exports.
+* Integers on ValueBase are now not converted to float.
+* Query method now supports case sensitivity for exact and nonexact both.
+* Fetch and fetchOne methods added alongside query, they returns list instead of Squirrel object.
+* FetchX and FetchXOne methods added alongside queries, same thing as above.

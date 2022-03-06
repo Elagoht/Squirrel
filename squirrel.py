@@ -3,22 +3,21 @@
 Rabbits Module is created by Furkan Baytekin
 My GitHub profile: https://github.com/Elagoht
 """
-from typing import Iterable, overload
+from typing import Iterable
 from pickle import dump, dumps, load, loads
 from base64 import b64encode, b64decode
-from abc import ABC
 inf=float("inf")
 pi=3.141592653589793
 e=2.718281828459045
 class StaticBase:
 	"""All useful static methods for external iterables located here."""
 	@staticmethod
-	def readCsv(filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
+	def readCsv(filePath:str,sep:str=",",FirstLineIsColumnNames=True,encoding:str="UTF-8"):
 		with open(filePath,"r",encoding=encoding) as file:
 			data=[]
-			for row in file.readlines()[1:] if ignoreHeaders else file.readlines():
+			for row in file.readlines()[1:] if FirstLineIsColumnNames else file.readlines():
 				rows=[]
-				for cell in row.split(sep): rows.append(cell)
+				for cell in row.replace("\n","").split(sep): rows.append(cell)
 				data.append(rows)
 		return data
 	@staticmethod
@@ -63,37 +62,55 @@ class ValueBase:
 		self.columns
 		try: return range(self.c(start),self.c(stop)+1)
 		except: raise KeyError("Start and stop must be a column name.")
-	def query(self,querystring="",exact:bool=False,columns:Iterable[int]=[]):
+	def query(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
 		result=[]
 		qryCol=[]
 		if columns!=[]:
 			for row in self._cells:
-				qrlRow=[]
-				for column in columns: qrlRow.append(row[column])
-				qryCol.append(qrlRow)
+				qryRow=[]
+				for column in columns: qryRow.append(row[column])
+				qryCol.append(qryRow)
 		else: qryCol=self._cells
 		if exact:
 			for index,cell in enumerate(qryCol):
 				if querystring in cell:
 					for item in cell:
-						if querystring==item:
-							result.append(self._cells[index])
-							break
+						if caseSensitive:
+							if querystring==item:
+								result.append(self._cells[index])
+								break
+						else:
+							if str(querystring).lower()==str(item).lower():
+								result.append(self._cells[index])
+								break
 		else:
 			for index,cell in enumerate(qryCol):
 				for item in cell:
-					if str(querystring).lower() in str(item).lower():
-						result.append(self._cells[index])
-						break
+					if caseSensitive:
+						if str(querystring) in str(item):
+							result.append(self._cells[index])
+							break
+					else:
+						if str(querystring).lower() in str(item).lower():
+							result.append(self._cells[index])
+							break
 		final=type(self)(*result)
 		final._axisnames=self._axisnames
 		return final
-	def queries(self,queries:Iterable,exacts:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+	def queries(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
 		if exacts==[]: exacts=[False for _ in queries]
 		if columns==[]: columns=[[] for _ in queries]
 		result=self
-		for query,exact,column in zip(queries,exacts,columns): result=result.query(query,exact,column)
+		for query,exact,case,column in zip(queries,exacts,caseSensitives,columns): result=result.query(query,exact,case,column)
 		return result
+	def fetch(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
+		return self.query(querystring,exact,caseSensitive,columns).data
+	def fetchOne(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
+		return self.fetch(querystring,exact,caseSensitive,columns)[0]
+	def fetchX(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+		return self.queries(queries,exacts,caseSensitives,columns).data
+	def fetchXOne(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+		return self.fetchX(queries,exacts,caseSensitives,columns)[0]
 	def __getitem__(self,index):
 		if len(self): return self._cells[index]
 	def __setitem__(self,index,val):
@@ -134,11 +151,22 @@ class ValueBase:
 		if check>-1:
 			if item!=None: del self._cells[check]
 		return self
+	def add(self,*items:Iterable):
+		self+=items
+		return len(self)
 	def addMany(self,*items:Iterable):
 		for item in items: self+=[self.__convert__(i) for i in item]
-	def sort(self,byColumn:int=0,asc=True,inPlace=True):
+	def sort(self,byColumn:int=0,asc:bool=True,inPlace:bool=True):
 		if inPlace: self._cells.sort(key=lambda x:str(x[byColumn]) if x[byColumn]!=None else -float("inf"),reverse=not asc)
 		else: return sorted(self._cells,key=lambda x:str(x[byColumn]) if x[byColumn]!=None else -float("inf"),reverse=not asc)
+	def sortByKey(self,key=lambda x:x[0],asc:bool=True,inPlace:bool=True):
+		self.columns
+		if inPlace: self._cells.sort(key=key,reverse=not asc)
+		else: return sorted(self._cells,key=key,reverse=not asc)
+	def sortNums(self,byColumn:int=0,asc:bool=True,inPlace:bool=True):
+		self.columns
+		if inPlace: self._cells.sort(key=lambda x:float(x[byColumn]),reverse=asc)
+		else: return sorted(self._cells,key=lambda x:float(x[byColumn]),reverse=asc)
 	@property
 	def __maxlen__(self):
 		if len(self)>0:
@@ -166,26 +194,28 @@ class ValueBase:
 				except: result.append(None)
 			return tuple(result)
 		else: return []
-	def addCsv(self,filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
+	def addCsv(self,filePath:str,FirstLineIsColumnNames=True,sep:str=",",encoding:str="UTF-8"):
 		try:
 			with open(filePath,"r",encoding=encoding) as file:
 				lines=file.readlines()
-				for row in lines[1:] if ignoreHeaders else lines:
+				for row in lines[1:] if FirstLineIsColumnNames else lines:
 					rows=[]
 					for cell in row.split(sep):
 						try:
 							try:
 								float(cell)
-								rows.append(float(cell))
+								if float(cell)==int(cell): rows.append(int(cell))
+								else: rows.append(float(cell))
 							except:
 								str(cell)
 								rows.append(cell.strip())
 						except: rows.append(None)
 					self+=rows
-				if ignoreHeaders: self._axisnames.extend(lines[0].replace("\n","").split(sep))
+				if FirstLineIsColumnNames: self._axisnames.extend(lines[0].replace("\n","").split(sep))
 		except: raise FileNotFoundError
-	def saveCsv(self,filePath:str,encoding:str="UTF-8"):
+	def saveCsv(self,filePath:str,encoding:str="UTF-8",IncludeColumnNames=True):
 		with open(filePath,"w",encoding=encoding) as file:
+			if IncludeColumnNames: file.write(",".join(self.columns)+"\n")
 			for row in self:
 				for index,cell in enumerate(row):
 					file.write(str(cell)+("," if index<len(row)-1 else "\n"))
@@ -328,6 +358,12 @@ class ValueBase:
 		if len(self)>0:
 			for i in self[-count:]: print("",i)
 		print("]")
+	def section(self,start:int=0,end:int=0):
+		print(self.__repr__()+f"\n items between {start} and {end}=[")
+		print("*"+str(self.columns)+"*")
+		if len(self)>0:
+			for i in self[start:end+1]: print("",i)
+		print("]")
 	def apply(self,function,columns:Iterable[int]=[]):
 		"""Function must take the value and return a new acceptable value. If the value is unacceptable it will become None.\n
 		### Example\n
@@ -399,14 +435,14 @@ class ValueBase:
 		return self
 
 class __SubBase__(ValueBase):
-	def addCsv(self,filePath:str,sep:str=",",ignoreHeaders=True,encoding:str="UTF-8"):
+	def addCsv(self,filePath:str,sep:str=",",FirstLineIsColumnNames=True,encoding:str="UTF-8"):
 		with open(filePath,"r",encoding=encoding) as file:
 			lines=file.readlines()
-			for row in lines[1:] if ignoreHeaders else lines:
+			for row in lines[1:] if FirstLineIsColumnNames else lines:
 				rows=[]
 				for cell in row.split(sep): rows.append(self.__convert__(cell))
 				self+=rows
-			if ignoreHeaders: self._axisnames.extend(lines[0].replace("\n","").split(sep))
+			if FirstLineIsColumnNames: self._axisnames.extend(lines[0].replace("\n","").split(sep))
 
 class __NumBase__(__SubBase__):
 	def sort(self,byColumn:int=0,asc=True,inPlace=True):
