@@ -34,18 +34,18 @@ class ValueBase:
 		self._columns={}
 		self._axisnames=[]
 		self._axisbackup=[]
-		for index in range(len(cells)):
-			row=[]
-			for i in cells[index]:
-				row.append(self.__convert__(i))
-			self._cells.append(row)
-		if colNames!=[]:
-			self.renameColumns(*colNames)
-	def __repr__(self): return f"<ValueBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self)>0 else "<ValueBase with no content>"
-	def __convert__(self,input): return input
+		for row in cells:
+			rows=[]
+			for val in row:
+				rows.append(self.__convert__(val))
+			self._cells.append(rows)
+		if colNames!=[]: self.renameColumns(*colNames)
+	def __repr__(self): return f"<ValueBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<ValueBase with no content>"
+	def __convert__(self,input_): return input_
 	@property
 	def columns(self):
-		if len(self)>0:
+		"""Returns a list that contains all column names."""
+		if len(self):
 			columns=[]
 			for row in range(len(self.transpose(False).transpose(False)[0])):
 				try: columns.append(self._axisnames[row])
@@ -54,15 +54,35 @@ class ValueBase:
 			return list(self._columns.keys())
 		else: return []
 	def c(self,stringdex)->int:
+		"""All methods takes integer values to detect columns, this method allows you to get integer value of specified column name. 
+
+In example, for a database with column names ("name", "surname", "phone"), self.c("surname") will return 1.
+
+Note that, stringdex is case sensitive."""
 		self.columns
 		try: return self._columns[stringdex]
 		except: raise KeyError("Stringdex must be a column name.")
-	def range(self,start:str,stop:str):
-		"""Stop index will be include."""
+	def range(self,start:str,stop:str)->range:
+		"""Returns a range object that specify between given column names.
+
+Stop index will be include."""
 		self.columns
 		try: return range(self.c(start),self.c(stop)+1)
 		except: raise KeyError("Start and stop must be a column name.")
+	def cloneFromColumns(self,*columns:Iterable[int]):
+		"""Returns a database as same type made with columns specified."""
+		result=type(self)(*(self.getColumn(i) for i in columns))
+		result.transpose()
+		result.renameColumns(*[self.columns[i] for i in columns])
+		return result
+	def cloneFromColumnRange(self,start:int,stop:int):
+		"""Returns a database as same type made with columns in range specified. Stop index will be include."""
+		result=type(self)(*(self.getColumn(i) for i in range(start,stop+1)))
+		result.transpose()
+		result.renameColumns(*[self.columns[i] for i in range(start,stop+1)])
+		return result
 	def query(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
+		"""Let you search something in database. Returns same type of database."""
 		result=[]
 		qryCol=[]
 		if columns!=[]:
@@ -98,20 +118,37 @@ class ValueBase:
 		final._axisnames=self._axisnames
 		return final
 	def queries(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+		"""Lets you do more than one query at the same time. Ut may be looks like a little confusing. The concept is very simple. Pass every argument in a list for every query sequence. 
+
+I.e:
+
+```py 
+db.query("some",True,False,[]).query("thing",False,False,[1])
+```
+
+is same thing as
+
+```py 
+db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		if exacts==[]: exacts=[False for _ in queries]
 		if columns==[]: columns=[[] for _ in queries]
 		result=self
 		for query,exact,case,column in zip(queries,exacts,caseSensitives,columns): result=result.query(query,exact,case,column)
 		return result
 	def fetch(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
+		"""Same as query but return a list object instead of database."""
 		return self.query(querystring,exact,caseSensitive,columns).data
 	def fetchOne(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
+		"""Returns the first entry as a list on query results."""
 		return self.fetch(querystring,exact,caseSensitive,columns)[0]
 	def fetchX(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+		"""Stands for queries equilavent to fetch method."""
 		return self.queries(queries,exacts,caseSensitives,columns).data
 	def fetchXOne(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+		"""Stands for queries equilavent to fetchOne method."""
 		return self.fetchX(queries,exacts,caseSensitives,columns)[0]
 	def __getitem__(self,index):
+		"""Returns specified row in database as list object."""
 		if len(self): return self._cells[index]
 	def __setitem__(self,index,val):
 		if len(self):
@@ -122,21 +159,23 @@ class ValueBase:
 				self._cells[index]=result
 			except: raise TypeError("Items parameter must be iterable")
 		return self
-	def __len__(self): return len(self._cells)
-	def __bool__(self):
+	def __len__(self) -> int:
+		"""Returns row count."""
+		return len(self._cells)
+	def __bool__(self) -> bool:
 		"""Returns True if it contains any item, else returns False."""
 		return bool(len(self))
 	@property
 	def data(self):
-		"""
-		Returns a list copy of data.
-		"""
+		"""Returns a list copy of data."""
 		return self._cells
 	def indexof(self,items:list):
+		"""if a row matches with items argument, it returns the row number of first matched instance else returns -1."""
 		for index,item in enumerate(self._cells):
 			if item==items: return index
 		return -1
 	def __add__(self,items:Iterable):
+		"""Allows you to add rows by + and +="""
 		try:
 			result=[]
 			for item in items:
@@ -152,30 +191,47 @@ class ValueBase:
 			if item!=None: del self._cells[check]
 		return self
 	def add(self,*items:Iterable):
+		"""Add rows to database. Prefer this method instead of + and +="""
 		self+=items
 		return len(self)
 	def addMany(self,*items:Iterable):
+		"""Add more than one row in one method."""
 		for item in items: self+=[self.__convert__(i) for i in item]
 	def sort(self,byColumn:int=0,asc:bool=True,inPlace:bool=True):
+		"""Sort every row by specified column. This method converts every data to string and sorts by that case. 
+
+If you want to specify a key function instead of converting string, use sortByKey method. 
+
+If you want to sort numbers by bigger to lesser, use sortNums method."""
 		if inPlace: self._cells.sort(key=lambda x:str(x[byColumn]) if x[byColumn]!=None else -float("inf"),reverse=not asc)
 		else: return sorted(self._cells,key=lambda x:str(x[byColumn]) if x[byColumn]!=None else -float("inf"),reverse=not asc)
 	def sortByKey(self,key=lambda x:x[0],asc:bool=True,inPlace:bool=True):
+		"""This method lets you determine sorting key function to sort data. You must specify column name inas x[n]. 
+
+I.e:
+
+```py 
+db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
+```"""
 		self.columns
 		if inPlace: self._cells.sort(key=key,reverse=not asc)
 		else: return sorted(self._cells,key=key,reverse=not asc)
 	def sortNums(self,byColumn:int=0,asc:bool=True,inPlace:bool=True):
+		"""Sorts columns that only contains numerical data in bigger to lesser value."""
 		self.columns
 		if inPlace: self._cells.sort(key=lambda x:float(x[byColumn]),reverse=asc)
 		else: return sorted(self._cells,key=lambda x:float(x[byColumn]),reverse=asc)
 	@property
 	def __maxlen__(self):
-		if len(self)>0:
+		"""Basically, retuns the column count."""
+		if len(self):
 			lens=[]
 			for i in self._cells:
 				lens.append(len(i))
 			return max(lens)
 		else: return 0
 	def getColumns(self,*columns):
+		"""Returns data in specified columns as lists in a list."""
 		if self.__maxlen__>max(columns):
 			result=[]
 			for cell in columns:
@@ -187,6 +243,7 @@ class ValueBase:
 			return type(self)(*result)
 		else: return self
 	def getColumn(self,column:int):
+		"""Returns data in specified columns as a list."""
 		if self.__maxlen__>column:
 			result=[]
 			for rows in self._cells:
@@ -195,6 +252,7 @@ class ValueBase:
 			return tuple(result)
 		else: return []
 	def addCsv(self,filePath:str,FirstLineIsColumnNames=True,sep:str=",",encoding:str="UTF-8"):
+		"""Adds data in a csv formatted file to database. This method can update colum names."""
 		try:
 			with open(filePath,"r",encoding=encoding) as file:
 				lines=file.readlines()
@@ -214,15 +272,25 @@ class ValueBase:
 				if FirstLineIsColumnNames: self._axisnames.extend(lines[0].replace("\n","").split(sep))
 		except: raise FileNotFoundError
 	def saveCsv(self,filePath:str,encoding:str="UTF-8",IncludeColumnNames=True):
+		"""Saves the data to a file in csv format. You can decide whether the csv file should have column names."""
 		with open(filePath,"w",encoding=encoding) as file:
 			if IncludeColumnNames: file.write(",".join(self.columns)+"\n")
 			for row in self:
 				for index,cell in enumerate(row):
 					file.write(str(cell)+("," if index<len(row)-1 else "\n"))
 	def renameColumns(self,*columnNames):
-		self._axisnames=list(columnNames[:self.__maxlen__])
+		"""Changes column names. You can use this methods in different ways. I.e:
+
+```py 
+db.renameColumns(*[i.title() for i in db.columns])
+```
+
+This will make your column names title formatted."""
+		if len(columnNames)==len(set(columnNames)): self._axisnames=list(columnNames[:self.__maxlen__])
+		else: raise ValueError("Column names must be unique")
 	def transpose(self,inPlace=True):
-		if len(self)>0:
+		"""Changes rows as columns, columns as rows. Don't worry you won't lose column names, they will appear in next transpose or rotate. You may need to define new column names for transposed columns."""
+		if len(self):
 			lens=max([len(row) for row in self._cells])
 			if inPlace:
 				self._cells=[*self.getColumns(*range(lens))]
@@ -233,22 +301,29 @@ class ValueBase:
 				return copy
 		elif not inPlace: return self
 	def fillNull(self):
+		"""Fills null data with None value."""
 		exec("self.transpose(True);"*2)
 	def fillNone(self,fillWith,includeNulls=False):
+		"""Fills None values with specified value. you can choose what will happen to null values."""
 		if includeNulls: self.fillNull()
 		if self.__convert__(fillWith)!=None:
 			self.replace(None,fillWith)
-		else: raise TypeError(f"Please provide a value compatible with {self}")
+		else: raise TypeError(f"Please provide a value compatible with {type(self)}")
 	def replace(self,old,new,count=-1,mode=0):
 		"""
-		Replace a value with a new value.\n
-		Count parameter determines how many changes will bi applied.
-		If you leave it blank or write -1, changes will be apply for all matches.
-		If count is bigger than instance number, it will replace all matches and stop.\n
-		If mode is -1, replaces all values contains "old" variable.
-		If it is 0, replaces all exact matches.
-		If it is 1, replaces all value matches.
-		"""
+		Replaces a value with a new value. 
+
+		Count parameter determines how many changes will be applied. 
+
+		If you leave it blank or write -1, changes will be apply for all matches. 
+
+		If count is bigger than instance number, it will replace all matches and stop. 
+
+		If mode is -1, replaces all values contains "old" variable. 
+
+		If it is 0, replaces all exact matches. 
+
+		If it is 1, replaces all value matches."""
 		nth=0
 		if count==-1:
 			count=self.__maxlen__*len(self)
@@ -271,7 +346,8 @@ class ValueBase:
 						if nth>=count: break
 			if nth>=count: break
 	def count(self,val,onColumns=[])->int:
-		if len(self)>0:
+		"""Count any value on specified columns. [] for include all columns."""
+		if len(self):
 			if onColumns==[]: onColumns=self.allColumns
 			data=self.getColumns(*onColumns)
 			count=0
@@ -280,7 +356,8 @@ class ValueBase:
 			return count
 		else: return 0
 	def mirror(self,inPlace=True):
-		if len(self)>0:
+		"""Reverse data by Y axis. Use flip method for X axis."""
+		if len(self):
 			columns=list(range(self.__maxlen__))
 			columns.reverse()
 			transformed=self.getColumns(*columns)
@@ -290,7 +367,8 @@ class ValueBase:
 			else: return transformed
 		elif not inPlace: return self
 	def flip(self,inPlace=True):
-		if len(self)>0:
+		"""Reverse data by X axis. Use mirror method for Y axis."""
+		if len(self):
 			rows=list(range(len(self)))
 			rows.reverse()
 			transformed=[]
@@ -300,14 +378,15 @@ class ValueBase:
 			else: return type(self)(*transformed)
 		elif not inPlace: return self
 	def rotate(self,mode=1,inPlace=True):
-		"""
-		mode:\n
-		-1 -> 90 degrees counterclockwise\n
-		 0 -> 0 degree\n
-		 1 -> 90 degrees clockwise\n
-		 2 -> 180 degrees
-		"""
-		if len(self)>0:
+		"""Rotate database. You won't lose column names, they will appear in next rotate or transpose.
+
+Mode:
+
+* -1 -> 90 degrees counterclockwise
+* 0 -> 0 degree
+* 1 -> 90 degrees clockwise
+* 2 -> 180 degrees"""
+		if len(self):
 			copy=type(self)(*self)
 			if mode==1:
 				copy.transpose(True)
@@ -327,6 +406,7 @@ class ValueBase:
 		elif not inPlace:
 			return self
 	def clone(self):
+		"""Make a copy of database."""
 		if len(self):
 			result=type(self)(*self)
 			result._axisnames=self._axisnames
@@ -334,46 +414,62 @@ class ValueBase:
 			return result
 		else: return type(self)()
 	def truncate(self):
+		"""Empty database. No way to undo!"""
 		self._cells=[]
 		self._columns={}
 		self._axisnames=[]
 		self._axisbackup=[]
-	def print(self,prefix:str=None,suffix:str=None):
+	def print(self,prefix:str=None,suffix:str=None,align:bool=True,countingStarts:int=0):
+		"""Prints all of the data in a pretty looking table. 
+
+Disabling alignment may be faster but uglier for big databases."""
 		if prefix!=None: print(str(prefix),end="")
-		print(self.__repr__()+"\nItems=[")
-		print("*"+str(self.columns)+"*")
-		if len(self)>0:
-			for i in self: print("",i)
+		if align:
+			lencol=[]
+			for col in range(self.__maxlen__): lencol.append(max(len(max([str(i) if type(i)!=str else f'"{i}"' for i in self.getColumn(col)],key=len)),len(self.columns[col])))
+		lendigit=len(str(len(self)+countingStarts))
+		print(self.__repr__()+"\nItems = [")
+		if align:
+			print(f" * [ ".rjust(lendigit+4),end="")
+			for data,lc,n in zip(self.columns,lencol,range(self.__maxlen__)):
+				print(f"{data}".center(lc),end="" if n==self.__maxlen__-1 else " | ")
+			print(" ]")
+		else: print(" *".rjust(lendigit+1)+" [ "+", ".join(self.columns)+" ]") 
+		if len(self):
+			if align:
+				for n,row in enumerate(self):
+					print(f" {n+countingStarts} [ ".rjust(lendigit+4),end="")
+					for data,lc,nth in zip(row,lencol,range(self.__maxlen__)):print(f"{data}".ljust(lc) if type(data)!=str else f'"{data}"'.ljust(lc),end=" " if nth==self.__maxlen__-1 else " | ")
+					print("]")
+			else:
+				for n,i in enumerate(self): print(f" {n}".rjust(lendigit+1),i)
 		if suffix!=None: print("] "+str(suffix))
 		else: print("]")
-	def head(self,count:int=5):
-		print(self.__repr__()+f"\nFirst {count} items=[")
-		print("*"+str(self.columns)+"*")
-		if len(self)>0:
-			for i in self[:count]: print("",i)
-		print("]")
-	def tail(self,count:int=5):
-		print(self.__repr__()+f"\nLast {count} items=[")
-		print("*"+str(self.columns)+"*")
-		if len(self)>0:
-			for i in self[-count:]: print("",i)
-		print("]")
-	def section(self,start:int=0,end:int=0):
-		print(self.__repr__()+f"\n items between {start} and {end}=[")
-		print("*"+str(self.columns)+"*")
-		if len(self)>0:
-			for i in self[start:end+1]: print("",i)
-		print("]")
+	def head(self,count:int=5,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
+		"""Prints first n rows in a table."""
+		if len(self): type(self)(*self[:count],colNames=self.columns).print(prefix,suffix,align,countingStarts)
+		else: self.print()
+	def tail(self,count:int=5,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
+		"""Prints last n rows in a table."""
+		if len(self): type(self)(*self[-count:],colNames=self.columns).print(prefix,suffix,align,countingStarts+len(self)-count)
+	def section(self,start:int=0,end:int=0,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
+		"""Prints rows between start and stop values in a table. End point includes."""
+		if len(self): type(self)(*self[start:end+1],colNames=self.columns).print(prefix,suffix,align,countingStarts+start)
 	def apply(self,function,columns:Iterable[int]=[]):
-		"""Function must take the value and return a new acceptable value. If the value is unacceptable it will become None.\n
-		### Example\n
-		```python
-		apply(lambda x:-inf if x<3 else x,[*db.allColumns])
-		```\n
-		it changes the values less than 3 on all columns, to -inf.\n
-		if columns parameter is [], it applies to all columns.
-		"""
-		if len(self)>0:
+		"""Apply a function to specified columns.
+
+Function must take the value and return a new acceptable value. If the value is unacceptable it will become None.
+
+I.e:
+	
+```py
+apply(lambda x:-inf if x<3 else x,[*db.allColumns])
+```
+
+It changes the values less than 3 on all columns, to -inf.
+
+if columns parameter is [], it applies to all columns."""
+		if len(self):
 			data=self.clone()
 			data.fillNull()
 			if columns==[]: columns=data.allColumns
@@ -382,12 +478,25 @@ class ValueBase:
 					data[row][col]=self.__convert__(function(data[row][col])) if data[row][col]!=None else None
 				self._cells=data._cells
 	def applyMany(self,functions:Iterable,columns:Iterable[Iterable[int]]):
+		"""Applies more than one function to specified columns in one method. It may look a little bit confusing. But the concept is simple. 
+
+```py 
+db.apply(lambda x:x.title()).apply(lambda x:x**2,[2,3])
+```
+
+is the same as
+
+```py 
+db.applyMany([(lambda x:x.title()),(lambda x:x**2)],[[],[2,3]])
+"""
 		for i in zip(functions,columns): self.apply(*i)
 	@property
 	def allColumns(self):
+		"""Returns a range object that refers all columns as integer."""
 		return range(len(self.transpose(False).transpose(False)[0]))
 	def removeDuplicates(self,startFromBottom=False,inPlace=True):
-		if len(self)>0:
+		"""Removes duplicate entries. You can determine which entry will kept, first or last."""
+		if len(self):
 			data=self.clone()
 			if startFromBottom: data.flip()
 			result=[]
@@ -399,6 +508,7 @@ class ValueBase:
 			else: return result
 		elif not inPlace: return self
 	def merge(self,With,protectDataType:bool=False,addDuplicates=False,inPlace:bool=True):
+		"""Merge two database in one. You can determine what will happen to duplicate entries."""
 		data=self.clone()
 		if protectDataType: data.__class__=ValueBase
 		for row in With:
@@ -409,33 +519,74 @@ class ValueBase:
 			self._cells=data._cells
 		return data
 	def split(self,From:int):
-		"""### Example:\n
-			```python
-			db0, db1 = db.split(3)
-			```"""
-		return type(self)(*self[:From]),type(self)(*self[From:])
-	def compare(self,With:float,operator:str,byColumn):
-		"Operator must be <, <=, ==, !=, >= or >."
-		if len(self)>0:
-			if operator in ("<", "<=", "==", "!=", ">=", ">"):
+		"""Slice the database into two pieces. Returnsa tuple, so you can compherence it. 
+
+Example:
+
+```python
+db0, db1=db.split(3)
+```"""
+		first=type(self)(*self[:From])
+		first._axisnames=self._axisnames
+		first._axisbackup=self._axisbackup[:From]
+		second=type(self)(*self[From:])
+		second._axisnames=self._axisnames
+		second._axisbackup=self._axisbackup[From:]
+		return first,second
+	def compare(self,With:float,operator:str,byColumn:int):
+		"""Like query method, returns only matched rows.
+
+Operator must be a string and one of <, <=, ==, !=, >= or >."""
+		if len(self):
+			if operator.strip() in ("<","<=","==","!=",">=",">"):
 				try: With=float(With)
 				except: raise TypeError("With parameter must be able to convert float type.")
 				result=[]
 				for index,cell in enumerate(self.getColumn(byColumn)):
 					exec(f"if cell {operator} With: result.append(self[index])")
-				return type(self)(*result)
+				final=type(self)(*result)
+				final._axisnames=self._axisnames
+				final._axisbackup=self._axisbackup
+				return final
+
 			raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
 		return self
 	def compareMany(self,With:Iterable[float],operators:Iterable[str],byColumns:Iterable[int]):
-		if len(self)>0:
+		"""Like queries method, filters database many times.
+
+I.e:
+
+```py 
+db.compare(4.71,"<=",3).compare(5.36,"!=",2)
+```
+
+is same as
+
+```py 
+db.compareMany([4.71,5.36],["<"=","!="],[3,2])
+```"""
+		if len(self):
 			result=self.clone()
 			for i in zip(With,operators,byColumns):
 				result=result.compare(*i)
 			return result
 		return self
+	def saveDB(self,filename:str):
+		"""Save database to a file to load it later."""
+		saveDB(self,filename)
+	def saveSecure(self,filename:str):
+		"""Save database encrypted to a file to load it later."""
+		saveSecure(self,filename)
+	def changeType(self,type_):
+		"""Change database type."""
+		data=type_(*self)
+		data._axisnames=self._axisnames
+		data._axisbackup=self._axisbackup
+		return data
 
 class __SubBase__(ValueBase):
 	def addCsv(self,filePath:str,sep:str=",",FirstLineIsColumnNames=True,encoding:str="UTF-8"):
+		"""add CSV formatted file as pure numerical data. if a value is not numerical, it will be added as None value."""
 		with open(filePath,"r",encoding=encoding) as file:
 			lines=file.readlines()
 			for row in lines[1:] if FirstLineIsColumnNames else lines:
@@ -446,22 +597,25 @@ class __SubBase__(ValueBase):
 
 class __NumBase__(__SubBase__):
 	def sort(self,byColumn:int=0,asc=True,inPlace=True):
-		if len(self)>0:
+		"""Sorts numbers in lesser to bigger. Use sortNums method to sort bigger to lesser."""
+		if len(self):
 			if inPlace: self._cells=sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
 			else: return sorted(self._cells,key=lambda x:x[byColumn] if x[byColumn]!=None else -float("inf"),reverse=not asc)
 		return self
 	def sortColumn(self,column):
-		if len(self)>0:
+		"""Returns a list object created by sorted state of selected column."""
+		if len(self):
 			data=list(self.getColumn(column))
-			while None in data:
-				data.remove(None)
+			while None in data: data.remove(None)
 			return sorted(data)
 		return self
 	def median(self,column):
-		if len(self)>0: return self.percentile(50,column)
+		"""Returns median value of specified column."""
+		if len(self): return self.percentile(50,column)
 		return None
-	def modes(self,column):
-		if len(self)>0:
+	def modes(self,column) -> tuple:
+		"""Returns mode values of specified column in a tuple or None in a tuple."""
+		if len(self):
 			data=self.sortColumn(column)
 			dic={}
 			for item in data: dic[item]=data.count(item)
@@ -472,25 +626,28 @@ class __NumBase__(__SubBase__):
 			return tuple(result)
 		return None,
 	def mean(self,column):
-		if len(self)>0:
+		"""Returns mean value of specified column."""
+		if len(self):
 			data=self.sortColumn(column)
 			return sum(data)/len(data)
 		return None
 	def min(self,column):
-		if len(self)>0:
-			data=self.sortColumn(column)
-			return float(min(data))
+		"""Returns minimum value of specified column."""
+		if len(self): return float(min(self.sortColumn(column)))
 		return None
 	def max(self,column):
-		if len(self)>0: return float(max(self.sortColumn(column)))
+		"""Returns maximum value of specified column."""
+		if len(self): return float(max(self.sortColumn(column)))
 		return None
 	def quartiles(self,column):
 		"""Returns a tuple contains first and third quartiles."""
-		if len(self)>0: return self.percentile(25,column),self.percentile(75,column)
+		if len(self): return self.percentile(25,column),self.percentile(75,column)
 		return None,None
 	def percentile(self,percent,column):
-		"""Percent parameter must be in range [0-100]."""
-		if len(self)>0:
+		"""Returns percentile value of specified column.
+
+Percent parameter must be in range [0-100]."""
+		if len(self):
 			if percent<0 or percent>100: raise ValueError("Percent parameter must be in range [0-100].")
 			data=self.sortColumn(column)
 			k=(len(data)-1)*percent/100
@@ -500,62 +657,88 @@ class __NumBase__(__SubBase__):
 			return data[int(c)]*(k-f)+data[int(f)]*(c-k)
 		return None
 	def decile(self,decim,column):
-		"""Percent parameter must be in range [0-100]."""
-		if len(self)>0:
-			if decim<0 or decim>10: raise ValueError("Percent parameter must be in range [0-10].")
+		"""Returns decile value of specified column.
+
+Decim parameter must be in range [0-10]."""
+		if len(self):
+			if decim<0 or decim>10: raise ValueError("Decim parameter must be in range [0-10].")
 			return self.percentile(decim*10,column)
 	def abs(self,columns:Iterable[int]=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Makes every value on specified column absolute value. 
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:abs(x),columns)
 	def oppositeSign(self,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Makes every value on specified column reversed sign. 
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:-x,columns)
 	def increase(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Increases every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:x+amount,columns)
 	def decrease(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Decreases every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:x-amount,columns)
 	def multiply(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Multiplies every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:x*amount,columns)
 	def divide(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Divides every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:x/amount,columns)
 	def floorDivide(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Floor divides every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:x//amount,columns)
 	def modulus(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Gives modulus values of every value on specified columns.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:x%amount,columns)
 	def power(self,amount=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Gives power value of every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:pow(x,amount),columns)
 	def round(self,ndigits=1,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Gives round value of every value on specified columns.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:round(x,ndigits),columns)
 	def sum(self,axis=0):
-		"""Returns a tuple with all sums of specified axis."""
+		"""Returns a tuple with all sums of specified axis.
+
+None values will accept as 0."""
 		data=self.clone()
 		if axis in ["x",1]: pass
 		elif axis in ["y",0]: data.transpose()
 		else: raise ValueError("Axis must be 'x', 1 or 'y', 0")
 		result=[]
-		for i in data: result.append(sum(i))
+		for row in data: result.append(sum((0 if cell==None else cell for cell in row)))
 		return tuple(result)
-	def summary(self,column): return f"""*** Column {column} ***
+	def summary(self,column): 
+		"""Returns a string data that shows minimum, 1st quarter, median, 3rd quarter, maximum and mean values of specified column."""
+		return f"""*** Column {column} ***
 Minimum\t\t: {self.min(column)}
 1st Quarter\t: {self.quartiles(column)[0]}
 Median\t\t: {self.median(column)}
-2ns Quarter\t: {self.quartiles(column)[1]}
+3rd Quarter\t: {self.quartiles(column)[1]}
 Maximum\t\t: {self.max(column)}
 Mean \t\t: {self.mean(column)}"""
 	def summaries(self,*columns):
-		"""Leave blank for get all columns."""
+		"""Summary method for seeing more than one column at the same time. Leave arguments blank to get all columns."""
 		if columns==(): columns=self.allColumns
 		result=""
-		for column in columns:
-			result+=f"""\n*** Column {column} ***
+		for column,name in enumerate(self.columns):
+			result+=f"""\n*** {name} ***
 Minimum\t\t: {self.min(column)}
 1st Quarter\t: {self.quartiles(column)[0]}
 Median\t\t: {self.median(column)}
@@ -564,53 +747,95 @@ Maximum\t\t: {self.max(column)}
 Mean \t\t: {self.mean(column)}"""
 		return result.replace("\n","",1)
 class StrBase(__SubBase__):
-	def __repr__(self): return f"<StrBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self)>0 else "<StrBase with no content>"
-	def __convert__(self,input):
-		try:return str(input).strip()
+	def __repr__(self): return f"<StrBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<StrBase with no content>"
+	def __convert__(self,input_):
+		try:return None if input_==None else str(input_).strip() 
 		except: return None
-	def compare(self,With:float,operator:str,byColumn):
-		"Operator must be <, <=, ==, !=, >= or >."
-		if len(self)>0:
-			if operator in ("<", "<=", "==", "!=", ">=", ">"):
+	def compare(self,With:str,operator:str,byColumn:int):
+		"""Compare strings by ascii values.
+
+Operator must be <, <=, ==, !=, >= or >."""
+		if len(self):
+			if operator in ("<","<=","==","!=",">=",">"):
 				With=str(With)
 				result=[]
 				for index,cell in enumerate(self.getColumn(byColumn)):
 					exec(f"if cell {operator} With: result.append(self[index])")
-				return type(self)(*result)
+				final=type(self)(*result)
+				final._axisnames=self._axisnames
+				final._axisbackup=self._axisbackup
+				return final
 			else: raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
 		else: return self
 class FloatBase(__NumBase__):
-	def __repr__(self): return f"<FloatBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self)>0 else "<FloatBase with no content>"
-	def __convert__(self,input):
-		try: return (((float(input) if input!="e" else e) if input!="-e" else -e) if input!="pi" else pi) if input!="-pi" else -pi
+	def __repr__(self): return f"<FloatBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<FloatBase with no content>"
+	def __convert__(self,input_):
+		try: return (((float(input_) if input_!="e" else e) if input_!="-e" else -e) if input_!="pi" else pi) if input_!="-pi" else -pi
 		except: return None
 	def floor(self,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Gives floor value of every value on specified columns by the specified amount.
+ 
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:int(x),columns)
 	def ceil(self,columns=[]):
-		"""if columns parameter is [], it applies to all columns."""
+		"""Gives ceil value of every value on specified columns by the specified amount.
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:int(x)+1 if x!=int(x) else x,columns)
-	def format(self,ndigits:int,columns=[]):
-		"""CAUTION! This method may cause data correction loss.\n
-		if columns parameter is [], it applies to all columns."""
+	def format(self,ndigits:int=2,columns=[]):
+		"""Changes digists of values on specified columns. 
+
+CAUTION! This method may cause data correction loss. 
+
+If columns parameter is [], it applies to all columns."""
 		self.apply(lambda x:format(x,f".{ndigits}f"),columns)
-	def print(self,ndigits:int=2,prefix:str=None,suffix:str=None):
-		if prefix!=None: print(str(prefix),end="")
-		print(self.__repr__()+"\nItems=[")
-		print("*"+str(self.columns)+"*")
+	def print(self,ndigits:int=2,prefix:str=None,suffix:str=None,align:bool=True,countingStarts:int=0):
+		"""Prints all of the data in a pretty looking table. 
+
+Disabling alignment may be faster but uglier for big databases."""
 		if ndigits<1: ndigits=2
-		if len(self)>0:
-			for i in self: 
-				print(" [",end="")
-				for k,l in enumerate([(self.__convert__(format(j,f".{ndigits}f")) if len(str(j).split(".")[1])>=ndigits else str(j).split(".")[0]+"."+str(j).split(".")[1].ljust(ndigits,"0")) if "." in str(j) else j for j in i]):
-					print(str(l)+(", " if k<self.__maxlen__-1 else ""),end="")
-				print("]")
+		if prefix!=None: print(str(prefix),end="")
+		if align:
+			lencol=[]
+			for col in range(self.__maxlen__): lencol.append(max(len(max(["None" if i==None else str(int(i))+"."+"0"*ndigits for i in self.getColumn(col)],key=len)),len(self.columns[col])))
+		lendigit=len(str(len(self)+countingStarts))
+		print(self.__repr__()+"\nItems = [")
+		if len(self):
+			if align:
+				print(f" * [ ".rjust(lendigit+4),end="")
+				for data,lc in zip(self.columns,lencol):
+					print(f"{data}".center(lc),end="" if data==self.columns[-1] else " | ")
+				print(" ]")
+				for n,row in enumerate(self):
+					print(f" {n+countingStarts} [ ".rjust(lendigit+4),end="")
+					base=[(self.__convert__(format(j,f".{ndigits}f").rjust(lc)) if len(str(j).split(".")[1])>=ndigits else str(j).split(".")[0]+"."+str(j).split(".")[1].ljust(ndigits,"0")) if "." in str(j) else j for j in row]
+					for data,lc,n in zip(base,lencol,range(self.__maxlen__)):
+						print(str(data).rjust(lc),end=" " if n==self.__maxlen__-1 else " | ")
+					print("]")
+			else:
+				print(" *".rjust(lendigit+1)+" [ "+", ".join(self.columns)+" ]")
+				for n,row in enumerate(self):
+					print(f" {n+countingStarts} [ ".rjust(lendigit+4),end="")
+					base=[(self.__convert__(format(j,f".{ndigits}f")) if len(str(j).split(".")[1])>=ndigits else str(j).split(".")[0]+"."+str(j).split(".")[1].ljust(ndigits,"0")) if "." in str(j) else j for j in row]
+					for data in base: 
+						print(str(data),end=" " if data==base[-1] else ", ")
+					print("]")
 		if suffix!=None: print("] "+str(suffix))
 		else: print("]")
+	def head(self,ndigits:int=2,count:int=5,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
+		"""Prints first n rows in a table."""
+		type(self)(*self[:count],colNames=self.columns).print(ndigits,prefix,suffix,align,countingStarts)
+	def tail(self,ndigits:int=2,count:int=5,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
+		"""Prints last n rows in a table."""
+		type(self)(*self[-count:],colNames=self.columns).print(ndigits,prefix,suffix,align,countingStarts+len(self)-count)
+	def section(self,ndigits:int=2,start:int=0,end:int=0,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
+		"""Prints rows between start and stop values in a table. End point includes."""
+		type(self)(*self[start:end+1],colNames=self.columns).print(ndigits,prefix,suffix,align,countingStarts+start)
+
 class IntBase(__NumBase__):
-	def __repr__(self): return f"<IntBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self)>0 else "<IntBase with no content>"
-	def __convert__(self,input):
-		try: return (((((((((int(input) if input!=-inf else -inf) if input!=inf else inf) if input!="inf" else inf) if input!="-inf" else -inf) if input!="e" else 3) if input!="-e" else -3) if input!=e else 3) if input!=-e else -3) if input!="pi" else 3) if input!="-pi" else -3
+	def __repr__(self): return f"<IntBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<IntBase with no content>"
+	def __convert__(self,input_):
+		try: return (((((((((int(input_) if input_!=-inf else -inf) if input_!=inf else inf) if input_!="inf" else inf) if input_!="-inf" else -inf) if input_!="e" else 3) if input_!="-e" else -3) if input_!=e else 3) if input_!=-e else -3) if input_!="pi" else 3) if input_!="-pi" else -3
 		except: return None
 def saveDB(obj,filename):
 	"""This function can be use to store any type of object."""
@@ -618,21 +843,11 @@ def saveDB(obj,filename):
 def loadDB(filename,type_=ValueBase):
 	"""This function can be use to restore any type of object."""
 	with open(filename+".sqr","rb") as inp: 
-		obj=load(inp)
-		if type_==ValueBase: return ValueBase(*obj)
-		elif type_==StrBase: return StrBase(*obj)
-		elif type_==IntBase: return IntBase(*obj)
-		elif type_==FloatBase: return FloatBase(*obj)
-		else: return obj
+		return load(inp)
 def saveSecure(obj,filename):
-	"""This function can be use to store any type of object."""
+	"""This function can be use to store any type of object in encoded format."""
 	with open(filename+".sqs","w") as outp: outp.write(b64encode(dumps(obj,5)).decode())
 def loadSecure(filename,type_=ValueBase):
-	"""This function can be use to restore any type of object."""
+	"""This function can be use to restore any type of encoded object."""
 	with open(filename+".sqs","r") as inp:
-		obj=loads(b64decode(inp.read()))
-		if type_==ValueBase: return ValueBase(*obj)
-		elif type_==StrBase: return StrBase(*obj)
-		elif type_==IntBase: return IntBase(*obj)
-		elif type_==FloatBase: return FloatBase(*obj)
-		else: return obj
+		return loads(b64decode(inp.read()))

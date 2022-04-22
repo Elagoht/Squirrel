@@ -6,10 +6,10 @@
 
 1. [Introduction](#0)
 1. [Installation](#1)
-2. [Setting Up](#2)
-2. [Documentary](#3)
-2. [Feature List](#4)
-2. [Examples](#5)
+1. [Setting Up](#2)
+1. [Documentary](#3)
+1. [Feature List](#4)
+1. [Examples](#5)
 
 <h2 id="0">Introduction</h2>
 
@@ -138,6 +138,8 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | fetch by multi query     | Gives multiple filter results as list objects. |  
 | fetch one by multi query | Gives multiple filter results as list objects. |  
 | clone                    | Gives a copy of database                       |
+| cloneFromColumns         | Gives specified columns of database.           |
+| cloneFromColumnRange     | Gives specified column range of database.      |
 | truncate                 | Empties database.                              |
 | saveDB                   | Saves database to a .sqr file.                 |
 | loadDB                   | Loads a database from a .sqr file.             |
@@ -158,12 +160,12 @@ db.print()
 
 # Output
 <ValueBase with 4 rows>
-Items=[
-*['Column 0', 'Column 1']*
- ['Elagoht', 17]
- ['Furkan', 21]
- ['Baytekin', '1']
- [10, 20]
+Items = [
+ * [  Column 0  | Column 1 ]
+ 0 [ "Elagoht"  | 17       ]
+ 1 [ "Furkan"   | 21       ]
+ 2 [ "Baytekin" | "1"      ]
+ 3 [ 10         | 20       ]
 ]
 ```
 
@@ -175,12 +177,12 @@ db.print()
 
 # Output
 <ValueBase with 4 rows>
-Items=[
-*['Name', 'ID']*    
- ['Elagoht', 17]
- ['Furkan', 21]
- ['Baytekin', '1']
- [10, 20]
+Items = [
+ * [    Name    |  ID ]
+ 0 [ "Elagoht"  | 17  ]
+ 1 [ "Furkan"   | 21  ]
+ 2 [ "Baytekin" | "1" ]
+ 3 [ 10         | 20  ]
 ]
 
 # First column shows column names and it has stars to be separated from others.
@@ -205,10 +207,10 @@ search.print() # Query method returns a database, so you can use database method
 
 # Output
 <ValueBase with 2 rows>
-Items=[
-*['Name', 'ID']*
- ['Furkan', 21]
- [10, 20]
+Items = [
+ * [   Name   | ID ]
+ 0 [ "Furkan" | 21 ]
+ 1 [ 10       | 20 ]
 ]
 ```
 
@@ -230,11 +232,11 @@ db.print()
 
 # Output
 <ValueBase with 3 rows>
-Items=[
-*['Name', 'ID']*
- ['Elagoht', 17]
- ['Furkan', 21]
- ['Baytekin', '1']
+Items = [
+ * [    Name    |  ID ]
+ 0 [ "Elagoht"  | 17  ]
+ 1 [ "Furkan"   | 21  ]
+ 2 [ "Baytekin" | "1" ]
 ]
 ```
 
@@ -258,12 +260,12 @@ db.sort(0)
 db.print("Hello this is a prefix string: ","Hello, this is a suffix string.")
 
 # Output
-Hello this is a prefix string: <ValueBase with 4 rows>
-Items=[
-*['Name', 'ID']*
- ['Baytekin', '1']
- ['Elagoht', 17]
- ['Furkan', 21]
+Hello this is a prefix string: <ValueBase with 3 rows>
+Items = [
+ * [    Name    |  ID ]
+ 0 [ "Baytekin" | "1" ]
+ 1 [ "Elagoht"  | 17  ]
+ 2 [ "Furkan"   | 21  ]
 ] Hello, this is a suffix string.
 ```
 
@@ -274,12 +276,12 @@ db.mirror()
 db.print()
 
 #Output
-<ValueBase with 4 rows>
-Items=[
-*['ID', 'Name']*
- ['1', 'Baytekin']
- [17, 'Elagoht']
- [21, 'Furkan']
+<ValueBase with 3 rows>
+Items = [
+ * [  ID |    Name    ]
+ 0 [ 17  | "Elagoht"  ]
+ 1 [ 21  | "Furkan"   ]
+ 2 [ "1" | "Baytekin" ]
 ]
 ```
 
@@ -291,11 +293,11 @@ db.print()
 
 #Output
 <ValueBase with 3 rows>
-Items=[
-*['ID', 'Name']*
- [21, 'Furkan']
- [17, 'Elagoht']
- ['1', 'Baytekin']
+Items = [
+ * [  ID |    Name    ]
+ 0 [ "1" | "Baytekin" ]
+ 1 [ 21  | "Furkan"   ]
+ 2 [ 17  | "Elagoht"  ]
 ]
 ```
 ### Rotate -> None | Valuebase | StrBase | IntBase | FloatBase
@@ -307,10 +309,10 @@ db.print()
 
 #Output
 <ValueBase with 2 rows>
-Items=[
-*['Column', 'Names', 'Changed']* # Column names changed but other names backed up for future rotation/transposation.
- ['Furkan', 'Elagoht', 'Baytekin']
- [21, 17, '1']
+Items = [
+ * [   Column   |  Names   |  Changed  ]
+ 0 [ "Baytekin" | "Furkan" | "Elagoht" ]
+ 1 [ "1"        | 21       | 17        ]
 ]
 ```
 
@@ -322,11 +324,11 @@ db.print()
 
 #Output
 <ValueBase with 3 rows>
-Items=[
-*['ID', 'Name']*
- ['Furkan', 21]
- ['Elagoht', 17]
- ['Baytekin', '1']
+Items = [
+ * [     ID     | Name ]
+ 0 [ "Baytekin" | "1"  ]
+ 1 [ "Furkan"   | 21   ]
+ 2 [ "Elagoht"  | 17   ]
 ]
 ```
 
@@ -339,26 +341,23 @@ db+=["pi",4,5]
 db.addMany([4,5,6],(5,6,7),(6,7,8),{7:0,8:1,9:2})
 db.print()
 
-db.print()
-
 #Output
 <IntBase with 7 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1, 2, 3]
- [2, 3, 4]
- [3, 4, 5]
- [4, 5, 6]
- [5, 6, 7]
- [6, 7, 8]
- [7, 8, 9]
+Items = [
+ * [ First | Second | Third ]
+ 0 [ 1     | 2      | 3     ]
+ 1 [ 2     | 3      | 4     ]
+ 2 [ 3     | 4      | 5     ]
+ 3 [ 4     | 5      | 6     ]
+ 4 [ 5     | 6      | 7     ]
+ 5 [ 6     | 7      | 8     ]
+ 6 [ 7     | 8      | 9     ]
 ]
 ```
 
 ### Some of Math Methods
 
 ```py
-db.print()
 print("Quartiles\t:",       db.quartiles(0),"\n"
       "Mean\t\t:"   ,       db.mean(1)     ,"\n"
       "Median\t\t:" ,       db.median(1)   ,"\n"
@@ -368,22 +367,11 @@ print("Quartiles\t:",       db.quartiles(0),"\n"
       "18th Percentile\t:", db.percentile(18,1))
 
 #Output
-<IntBase with 7 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1, 2, 3]
- [2, 3, 4]
- [3, 4, 5]
- [4, 5, 6]
- [5, 6, 7]
- [6, 7, 8]
- [7, 8, 9]
-]
-Quartiles       : (2.0, 6.0) 
-Mean            : 5.0 
-Median          : 5 
-Modes           : (2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0) 
-Maximum         : 8.0 
+Quartiles       : (2.5, 5.5)
+Mean            : 5.0
+Median          : 5
+Modes           : (2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0)
+Maximum         : 8.0
 Minimum         : 2.0
 18th Percentile : 3.08
 ```
@@ -391,24 +379,39 @@ Minimum         : 2.0
 ### Summary -> String
 
 ```py
-print(db.summaries())
+print(db.summary(0))
 
 #Output
 *** Column 0 ***
 Minimum         : 1.0
 1st Quarter     : 2.5
 Median          : 4
+3rd Quarter     : 5.5
+Maximum         : 7.0
+Mean            : 4.0
+```
+
+# Summaries -> String
+
+```py
+print(db.summaries())
+
+#Output
+*** First ***
+Minimum         : 1.0
+1st Quarter     : 2.5
+Median          : 4
 2ns Quarter     : 5.5
 Maximum         : 7.0
 Mean            : 4.0
-*** Column 1 ***
+*** Second ***
 Minimum         : 2.0
 1st Quarter     : 3.5
 Median          : 5
 2ns Quarter     : 6.5
 Maximum         : 8.0
 Mean            : 5.0
-*** Column 2 ***
+*** Third ***
 Minimum         : 3.0
 1st Quarter     : 4.5
 Median          : 6
@@ -417,47 +420,24 @@ Maximum         : 9.0
 Mean            : 6.0
 ```
 
-### RemoveDuplicates -> None | Valuebase | StrBase | IntBase | FloatBase
-
-```py
-db+=(2,-(-pi),4) 
-# Second row added as a new row.
-db.removeDuplicates(True)
-db.print()
-
-#Output
-<IntBase with 7 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1, 2, 3]
-           # Other one has deleted.
- [3, 4, 5]
- [4, 5, 6]
- [5, 6, 7]
- [6, 7, 8]
- [7, 8, 9]
- [2, 3, 4] 
-           # Started from bottom and fist one has kept.
-]
-```
-
 ### Change DataBase Type
 
 ```py
-db=sq.FloatBase(*db)
+db=db.changeType(sq.FloatBase)
+db.increase(.2)
 db.print()
 
 #Output
 <FloatBase with 7 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1.00, 2.00, 3.00]
- [2.00, 3.00, 4.00]
- [3.00, 4.00, 5.00]
- [4.00, 5.00, 6.00]
- [5.00, 6.00, 7.00]
- [6.00, 7.00, 8.00]
- [7.00, 8.00, 9.00]
+Items = [
+ * [ First | Second | Third ]
+ 0 [  1.20 |   2.20 |  3.20 ]
+ 1 [  2.20 |   3.20 |  4.20 ]
+ 2 [  3.20 |   4.20 |  5.20 ]
+ 3 [  4.20 |   5.20 |  6.20 ]
+ 4 [  5.20 |   6.20 |  7.20 ]
+ 5 [  6.20 |   7.20 |  8.20 ]
+ 6 [  7.20 |   8.20 |  9.20 ]
 ]
 ```
 
@@ -471,19 +451,19 @@ db1.print(2,"","I am the last part.")
 
 #Output
 <FloatBase with 5 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1.00, 2.00, 3.00]
- [2.00, 3.00, 4.00]
- [3.00, 4.00, 5.00]
- [4.00, 5.00, 6.00]
- [5.00, 6.00, 7.00]
+Items = [
+ * [ First | Second | Third ]
+ 0 [  1.20 |   2.20 |  3.20 ]
+ 1 [  2.20 |   3.20 |  4.20 ]
+ 2 [  3.20 |   4.20 |  5.20 ]
+ 3 [  4.20 |   5.20 |  6.20 ]
+ 4 [  5.20 |   6.20 |  7.20 ]
 ] I am the first part.
 <FloatBase with 2 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [6.00, 7.00, 8.00]
- [7.00, 8.00, 9.00]
+Items = [
+ * [ First | Second | Third ]
+ 0 [  6.20 |   7.20 |  8.20 ]
+ 1 [  7.20 |   8.20 |  9.20 ]
 ] I am the last part.
 ```
 
@@ -494,14 +474,13 @@ db.compare(5,"<=",0).print()
 # Get rows that are less than/equal to 5 in the first column.
 
 #Output
-<FloatBase with 5 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1.00, 2.00, 3.00]
- [2.00, 3.00, 4.00]
- [3.00, 4.00, 5.00]
- [4.00, 5.00, 6.00]
- [5.00, 6.00, 7.00]
+<FloatBase with 4 rows>
+Items = [
+ * [ First | Second | Third ]
+ 0 [  1.20 |   2.20 |  3.20 ]
+ 1 [  2.20 |   3.20 |  4.20 ]
+ 2 [  3.20 |   4.20 |  5.20 ]
+ 3 [  4.20 |   5.20 |  6.20 ]
 ]
 ```
 
@@ -513,14 +492,14 @@ db.compareMany([7,1,4],("<=",">","!="),(0,0,0)).print()
 
 #Output
 <FloatBase with 6 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1.00, 2.00, 3.00]
- [3.00, 4.00, 5.00]
- [4.00, 5.00, 6.00]
- [5.00, 6.00, 7.00]
- [6.00, 7.00, 8.00]
- [7.00, 8.00, 9.00]
+Items = [
+ * [ First | Second | Third ]
+ 0 [  1.20 |   2.20 |  3.20 ]
+ 1 [  2.20 |   3.20 |  4.20 ]
+ 2 [  3.20 |   4.20 |  5.20 ]
+ 3 [  4.20 |   5.20 |  6.20 ]
+ 4 [  5.20 |   6.20 |  7.20 ]
+ 5 [  6.20 |   7.20 |  8.20 ]
 ]
 ```
 
@@ -536,15 +515,15 @@ db.print()
 
 #Output
 <FloatBase with 7 rows>
-Items=[
-*['First', 'Second', 'Third']*
- [1.00, -2.00, 9.00]
- [-2.00, 9.00, -4.00]
- [9.00, -4.00, 25.00]
- [-4.00, 25.00, -6.00]
- [25.00, -6.00, 49.00]
- [-6.00, 49.00, -8.00]
- [49.00, -8.00, 81.00]
+Items = [
+ * [ First | Second | Third ]
+ 0 [  1.44 |   4.84 | 10.24 ]
+ 1 [  4.84 |  10.24 | 17.64 ]
+ 2 [ 10.24 |  17.64 | 27.04 ]
+ 3 [ 17.64 |  27.04 | 38.44 ]
+ 4 [ 27.04 |  38.44 | 51.84 ]
+ 5 [ 38.44 |  51.84 | 67.24 ]
+ 6 [ 51.84 |  67.24 | 84.64 ]
 ]
 ```
 
@@ -552,7 +531,7 @@ Items=[
 
 ```py
 print(
-    [1,-2,9] in db,
+    [1.44, 4.840000000000001, 10.240000000000002] in db, # This is a float problem does in all programming languages.
     [1,+2,3] in db,
 sep="\n")
 
@@ -564,7 +543,7 @@ False
 ### Example IntBase for Missing Values
 
 ```py
-db=sq.IntBase((1,))
+db=sq.IntBase((1,2,3),colNames=["These","Are","Columns"])
 db+=3,
 db+=4,5
 db+=6,2,1
@@ -573,14 +552,16 @@ db.print()
 
 #Output
 <IntBase with 4 rows>
-Items=[
-*['Column 0', 'Column 1', 'Column 2']*
- [1]
- [3]
- [4, 5]
- [6, 2, 1]
+Items = [
+ * [ These | Are  | Columns ]
+ 0 [ 1     | 2    | 3       ]
+ 1 [ 3     | ]
+ 2 [ 4     | 5    | ]
+ 3 [ 6     | 2    | 1       ]
 ]
 ```
+
+Row 1 ends in 1st column and row 2 ends in 2nd column because there are null data.
 
 ### FillNull -> None
 
@@ -590,12 +571,12 @@ db.print()
 
 #Output
 <IntBase with 4 rows>
-Items=[
-*['Column 0', 'Column 1', 'Column 2']*
- [1, None, None]
- [3, None, None]
- [4, 5, None]
- [6, 2, 1]
+Items = [
+ * [ These | Are  | Columns ]
+ 0 [ 1     | 2    | 3       ]
+ 1 [ 3     | None | None    ]
+ 2 [ 4     | 5    | None    ]
+ 3 [ 6     | 2    | 1       ]
 ]
 ```
 
@@ -607,11 +588,45 @@ db.print()
 
 #Output
 <IntBase with 4 rows>
-Items=[
-*['Column 0', 'Column 1', 'Column 2']*
- [1, -1, -1]
- [3, -1, -1]
- [4, 5, -1]
- [6, 2, 1]
+Items = [
+ * [ These | Are | Columns ]
+ 0 [ 1     | 2   | 3       ]
+ 1 [ 3     | -1  | -1      ]
+ 2 [ 4     | 5   | -1      ]
+ 3 [ 6     | 2   | 1       ]
+]
+```
+
+Replaced all None values with -1.
+
+### CloneFromColumns -> Valuebase | StrBase | IntBase | FloatBase
+
+```py
+db.cloneFromColumns(0,db.c("Columns")).print()
+
+#Output
+<IntBase with 4 rows>
+Items = [
+ * [ These | Columns ]
+ 0 [ 1     | 3       ]
+ 1 [ 3     | -1      ]
+ 2 [ 4     | -1      ]
+ 3 [ 6     | 1       ]
+]
+```
+
+### CloneFromColumnRange -> Valuebase | StrBase | IntBase | FloatBase
+
+```py
+db.cloneFromColumnRange(1,db.c("Columns")).print()
+
+#Output
+<IntBase with 4 rows>
+Items = [
+ * [ Are | Columns ]
+ 0 [ 2   | 3       ]
+ 1 [ -1  | -1      ]
+ 2 [ 5   | -1      ]
+ 3 [ 2   | 1       ]
 ]
 ```
