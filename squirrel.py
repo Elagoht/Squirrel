@@ -141,8 +141,10 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		for query,exact,case,column in zip(queries,exacts,caseSensitives,columns): result=result.query(query,exact,case,column)
 		return result
 	def election(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
+		"""Same as query but only keeps results on itself. Others will be deleted."""
 		self._cells=self.query(querystring,exact,caseSensitive,columns)
 	def elections(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
+		"""Same as queries but only keeps results on itself. Others will be deleted."""
 		self._cells=self.queries(queries,exacts,caseSensitives,columns)
 	def fetch(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
 		"""Same as query but return a list object instead of database."""
