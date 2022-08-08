@@ -1,7 +1,5 @@
 # Squirrel Module
 
-![Squirrel Logo](https://raw.githubusercontent.com/Elagoht/Squirrel/main/squirrel.png)
-
 ## Table of Content
 
 1. [Introduction](#0)
@@ -62,7 +60,8 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | ------------------------ | ---------------------------------------------- |
 | getitem, setitem         | Allows you get and set specified row.          |
 | add                      | Adds a row.                                    |
-| remove                   | Removes a row.                                 |
+| remove                   | Removes a single cell in a row.                |
+| removeRow                | Removes a whole row.                           |
 | addMany                  | Adds multiple row in a time.                   |
 | indexof                  | Finds index number of a given row.             |
 | sort                     | Sorts data by specified column.                |
@@ -105,7 +104,7 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | floorDivide              | Floor divides all values on specified column.  |
 | modulus                  | Moduluses all values on specified column.      |
 | sum                      | Returns sums of all values on specified axis.  |
-| compare                  | Compares values and applies a querry by math.  |
+| compare                  | Compares values and applies a query by math.   |
 | compareMany              | Applies more than one compare.                 |
 
 
@@ -118,6 +117,12 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | flip                     | flips the database on the x-axis.              |
 | rotate                   | Rotates database 90, 180 and 270 degrees.      |
 | removeDuplicates         | Removes duplicate rows from database.          |
+| swap                     | Swaps two instances' positions.                |
+| swapRow                  | Swaps two rows' positions.                     |
+| moveUp                   | Swaps item with upper one.                     |
+| moveDown                 | Swaps item with lower one.                     |
+| moveLeft                 | Swaps item with item on the left.              |
+| moveRight                | Swaps item with item on the right.             |
 
 #### Working With More Than One Database
 
@@ -133,6 +138,8 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 | count                    | Counts specified value.                        |
 | query                    | Searchs values matched with quert string.      |
 | multiple query           | Applies multiple queries.                      |
+| election                 | Just keep query results.                       |
+| multiple election        | Just keep multiple query result.               |
 | fetch                    | Gives search result as list objects.           |
 | fetch one                | Gives the first search result as list object.  |  
 | fetch by multi query     | Gives multiple filter results as list objects. |  
@@ -222,6 +229,7 @@ print(search) # Fetch method returns a list that contains lists.
 
 # Output
 [['Furkan', 21], [10, 20]]
+```
 
 ### Remove -> None
 
@@ -391,7 +399,7 @@ Maximum         : 7.0
 Mean            : 4.0
 ```
 
-# Summaries -> String
+### Summaries -> String
 
 ```py
 print(db.summaries())

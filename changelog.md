@@ -46,3 +46,13 @@
 * StrBase now not takes None as "None".
 * Creating databases from existing ones columns is possible now.
 * You can do the same thing by specifying column range.
+
+# v0.1.1 "Move or Die"
+
+* FloatBase print function will not crashes on inf or -inf values now.
+* Remove, removeRow, edit, editRow methods added to prevent usage as global variable.
+* Swap method added to change positions of two cells.
+* SwapRow method added to change positions of two rows.
+* MoveUp, moveDown, moveLeft, moreRight method added to use swap method faster.
+* Election method added, same as query but inplace.
+* Elections method added, same as queries but inplace.
