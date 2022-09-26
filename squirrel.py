@@ -6,6 +6,8 @@ My GitHub profile: https://github.com/Elagoht
 from typing import Iterable, Tuple
 from pickle import dump, dumps, load, loads
 from base64 import b64encode, b64decode
+from re import compile, finditer
+
 inf=float("inf")
 pi=3.141592653589793
 e=2.718281828459045
@@ -16,8 +18,7 @@ class StaticBase:
 		with open(filePath,"r",encoding=encoding) as file:
 			data=[]
 			for row in file.readlines()[1:] if FirstLineIsColumnNames else file.readlines():
-				rows=[]
-				for cell in row.replace("\n","").split(sep): rows.append(cell)
+				rows = list(row.replace("\n","").split(sep))
 				data.append(rows)
 		return data
 	@staticmethod
@@ -27,7 +28,7 @@ class StaticBase:
 				for index,cell in enumerate(row): file.write(cell+("," if index<len(row)-1 else ""))
 	@staticmethod
 	def transposeIter(items):
-		return ValueBase(*items).getColumns(*range(max([len(row) for row in items])))
+		return ValueBase(*items).getColumns(*range(max(len(row) for row in items)))
 class ValueBase:
 	def __init__(self,*cells:Iterable,colNames=[]):
 		self._cells=[]
@@ -35,9 +36,7 @@ class ValueBase:
 		self._axisnames=[]
 		self._axisbackup=[]
 		for row in cells:
-			rows=[]
-			for val in row:
-				rows.append(self.__convert__(val))
+			rows = [self.__convert__(val) for val in row]
 			self._cells.append(rows)
 		if colNames!=[]: self.renameColumns(*colNames)
 	def __repr__(self): return f"<ValueBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<ValueBase with no content>"
@@ -45,14 +44,14 @@ class ValueBase:
 	@property
 	def columns(self):
 		"""Returns a list that contains all column names."""
-		if len(self):
-			columns=[]
-			for row in range(len(self.transpose(False).transpose(False)[0])):
-				try: columns.append(self._axisnames[row])
-				except: columns.append(f"Column {row}")
-			self._columns=dict((j,i) for i,j in enumerate(columns))
-			return list(self._columns.keys())
-		else: return []
+		if not len(self):
+			return []
+		columns=[]
+		for row in range(len(self.transpose(False).transpose(False)[0])):
+			try: columns.append(self._axisnames[row])
+			except: columns.append(f"Column {row}")
+		self._columns = {j: i for i,j in enumerate(columns)}
+		return list(self._columns.keys())
 	def c(self,stringdex) -> int:
 		"""All methods takes integer values to detect columns, this method allows you to get integer value of specified column name.
 
@@ -78,7 +77,7 @@ If newColumnNames equals [], use imported columns names. Do not use one column t
 		if newColumnNames==[]:
 			result.renameColumns(*[self.columns[i] for i in columns])
 		else:
- 			result.renameColumns(*newColumnNames)
+			result.renameColumns(*newColumnNames)
 		return result
 	def cloneFromColumnRange(self,start:int,stop:int):
 		"""Returns a database as same type made with columns in range specified. Stop index will be include."""
@@ -92,33 +91,29 @@ If newColumnNames equals [], use imported columns names. Do not use one column t
 		qryCol=[]
 		if columns!=[]:
 			for row in self._cells:
-				qryRow=[]
-				for column in columns: qryRow.append(row[column])
+				qryRow = [row[column] for column in columns]
 				qryCol.append(qryRow)
 		else: qryCol=self._cells
-		if exact:
-			for index,cell in enumerate(qryCol):
+		for index, cell in enumerate(qryCol):
+			if exact:
 				if querystring in cell:
 					for item in cell:
 						if caseSensitive:
 							if querystring==item:
 								result.append(self._cells[index])
 								break
-						else:
-							if str(querystring).lower()==str(item).lower():
-								result.append(self._cells[index])
-								break
-		else:
-			for index,cell in enumerate(qryCol):
+						elif str(querystring).lower()==str(item).lower():
+							result.append(self._cells[index])
+							break
+			else:
 				for item in cell:
 					if caseSensitive:
 						if str(querystring) in str(item):
 							result.append(self._cells[index])
 							break
-					else:
-						if str(querystring).lower() in str(item).lower():
-							result.append(self._cells[index])
-							break
+					elif str(querystring).lower() in str(item).lower():
+						result.append(self._cells[index])
+						break
 		final=type(self)(*result)
 		final._axisnames=self._axisnames
 		return final
@@ -166,9 +161,7 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 	def __setitem__(self,index,val):
 		if len(self):
 			try:
-				result=[]
-				for item in val:
-					result.append(self.__convert__(item))
+				result = [self.__convert__(item) for item in val]
 				self._cells[index]=result
 			except: raise TypeError("Items parameter must be iterable")
 		return self
@@ -184,9 +177,7 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		return self._cells
 	def indexof(self,items:list):
 		"""if a row matches with items argument, it returns the row number of first matched instance else returns -1."""
-		for index,item in enumerate(self._cells):
-			if item==items: return index
-		return -1
+		return next((index for index, item in enumerate(self._cells) if item == items), -1)
 	def __add__(self,items:Iterable):
 		"""Allows you to add rows by + and +="""
 		try:
@@ -200,8 +191,8 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		except: raise TypeError("Items parameter must be iterable")
 	def __sub__(self,item):
 		check=self.indexof(item)
-		if check>-1:
-			if item!=None: del self._cells[check]
+		if check > -1 and item != None:
+			del self._cells[check]
 		return self
 	def add(self,*items:Iterable):
 		"""Add row to database. Prefer this method instead of + and +="""
@@ -257,32 +248,30 @@ db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
 	def columnCount(self):
 		"""Basically, retuns the column count."""
 		if len(self):
-			lens=[]
-			for i in self._cells:
-				lens.append(len(i))
+			lens = [len(i) for i in self._cells]
 			return max(lens)
 		else: return 0
 	def getColumns(self,*columns):
 		"""Returns data in specified columns as lists in a list."""
-		if self.columnCount>max(columns):
-			result=[]
-			for cell in columns:
-				row=[]
-				for rows in self._cells:
-					try: row.append(rows[cell])
-					except: row.append(None)
-				result.append(row)
-			return type(self)(*result)
-		else: return self
+		if self.columnCount <= max(columns):
+			return self
+		result=[]
+		for cell in columns:
+			row=[]
+			for rows in self._cells:
+				try: row.append(rows[cell])
+				except: row.append(None)
+			result.append(row)
+		return type(self)(*result)
 	def getColumn(self,column:int):
 		"""Returns data in specified columns as a list."""
-		if self.columnCount>column:
-			result=[]
-			for rows in self._cells:
-				try: result.append(rows[column])
-				except: result.append(None)
-			return tuple(result)
-		else: return []
+		if self.columnCount <= column:
+			return []
+		result=[]
+		for rows in self._cells:
+			try: result.append(rows[column])
+			except: result.append(None)
+		return tuple(result)
 	def addCsv(self,filePath:str,FirstLineIsColumnNames=True,sep:str=",",encoding:str="UTF-8"):
 		"""Adds data in a csv formatted file to database. This method can update column names."""
 		try:
@@ -299,7 +288,8 @@ db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
 							except:
 								str(cell)
 								rows.append(cell.strip())
-						except: rows.append(None)
+						except:
+							rows.append(None)
 					self+=rows
 				if FirstLineIsColumnNames: self._axisnames.extend(lines[0].replace("\n","").split(sep))
 		except: raise FileNotFoundError
@@ -323,7 +313,7 @@ This will make your column names title formatted."""
 	def transpose(self,inPlace=True):
 		"""Changes rows as columns, columns as rows. Don't worry you won't lose column names, they will appear in next transpose or rotate. You may need to define new column names for transposed columns."""
 		if len(self):
-			lens=max([len(row) for row in self._cells])
+			lens = max(len(row) for row in self._cells)
 			if inPlace:
 				self._cells=[*self.getColumns(*range(lens))]
 				self._axisbackup,self._axisnames=self._axisnames,self._axisbackup
@@ -361,31 +351,25 @@ This will make your column names title formatted."""
 			count=self.columnCount*len(self)
 		for rowind,row in enumerate(self._cells):
 			for cellind,cell in enumerate(row):
-				if mode==-1:
-					if str(old) in str(cell):
-						self[rowind][cellind]=self.__convert__(new)
-						nth+=1
-						if nth>=count: break
-				if mode==0:
-					if cell==old:
-						self[rowind][cellind]=self.__convert__(new)
-						nth+=1
-						if nth>=count: break
-				if mode==1:
-					if str(cell)==str(old):
-						self[rowind][cellind]=self.__convert__(new)
-						nth+=1
-						if nth>=count: break
+				if mode == -1 and str(old) in str(cell):
+					self[rowind][cellind]=self.__convert__(new)
+					nth+=1
+					if nth>=count: break
+				if mode == 0 and cell == old:
+					self[rowind][cellind]=self.__convert__(new)
+					nth+=1
+					if nth>=count: break
+				if mode == 1 and str(cell) == str(old):
+					self[rowind][cellind]=self.__convert__(new)
+					nth+=1
+					if nth>=count: break
 			if nth>=count: break
 	def count(self,val,onColumns=[]) -> int:
 		"""Count any value on specified columns. [] for include all columns."""
 		if len(self):
 			if onColumns==[]: onColumns=self.allColumns
 			data=self.getColumns(*onColumns)
-			count=0
-			for row in data:
-				count+=row.count(val)
-			return count
+			return sum(row.count(val) for row in data)
 		else: return 0
 	def mirror(self,inPlace=True):
 		"""Reverse data by Y axis. Use flip method for X axis."""
@@ -403,9 +387,7 @@ This will make your column names title formatted."""
 		if len(self):
 			rows=list(range(len(self)))
 			rows.reverse()
-			transformed=[]
-			for i in rows:
-				transformed.append(self._cells[i])
+			transformed = [self._cells[i] for i in rows]
 			if inPlace: self._cells=transformed
 			else: return type(self)(*transformed)
 		elif not inPlace: return self
@@ -439,12 +421,12 @@ Mode:
 			return self
 	def clone(self):
 		"""Make a copy of database."""
-		if len(self):
-			result=type(self)(*self)
-			result._axisnames=self._axisnames
-			result._axisbackup=self._axisbackup
-			return result
-		else: return type(self)()
+		if not len(self):
+			return type(self)()
+		result=type(self)(*self)
+		result._axisnames=self._axisnames
+		result._axisbackup=self._axisbackup
+		return result
 	def truncate(self):
 		"""Empty database. No ways to undo!"""
 		self._cells=[]
@@ -455,14 +437,15 @@ Mode:
 		"""Prints all of the data in a pretty looking table.
 
 Disabling alignment may be faster but uglier for big databases."""
-		if prefix!=None: print(str(prefix),end="")
+		if prefix!=None:
+			print(prefix, end="")
 		if align:
-			lencol=[]
-			for col in range(self.columnCount): lencol.append(max(len(max([str(i) if type(i)!=str else f'"{i}"' for i in self.getColumn(col)],key=len)),len(self.columns[col])))
+			lencol = [max(len(max((str(i) if type(i) != str else f'"{i}"' for i in self.getColumn(col)), key=len)), len(self.columns[col])) for col in range(self.columnCount)]
+
 		lendigit=len(str(len(self)+countingStarts))
 		print(self.__repr__()+"\nItems = [")
 		if align:
-			print(f" * [ ".rjust(lendigit+4),end="")
+			print(" * [ ".rjust(lendigit+4), end="")
 			for data,lc,n in zip(self.columns,lencol,range(self.columnCount)):
 				print(f"{data}".center(lc),end="" if n==self.columnCount-1 else " | ")
 			print(" ]")
@@ -475,7 +458,8 @@ Disabling alignment may be faster but uglier for big databases."""
 					print("]")
 			else:
 				for n,i in enumerate(self): print(f" {n}".rjust(lendigit+1),i)
-		if suffix!=None: print("] "+str(suffix))
+		if suffix!=None:
+			print(f"] {suffix}")
 		else: print("]")
 	def head(self,count:int=5,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
 		"""Prints first n rows in a table."""
@@ -533,7 +517,7 @@ db.applyMany([(lambda x:x.title()),(lambda x:x**2)],[[],[2,3]])
 			if startFromBottom: data.flip()
 			result=[]
 			for row in data:
-				if not (row in result): result.append(row)
+				if row not in result: result.append(row)
 			result=type(self)(*result)
 			if startFromBottom: result.flip()
 			if inPlace: self._cells=result._cells
@@ -570,11 +554,12 @@ db0, db1=db.split(3)
 
 Operator must be a string and one of <, <=, ==, !=, >= or >."""
 		if len(self):
-			if operator.strip() in ("<","<=","==","!=",">=",">"):
-				try: With=float(With)
+			if operator.strip() in {"<", "<=", "==", "!=", ">=", ">"}:
+				try:
+					With = With
 				except: raise TypeError("With parameter must be able to convert float type.")
 				result=[]
-				for index,cell in enumerate(self.getColumn(byColumn)):
+				for _ in self.getColumn(byColumn):
 					exec(f"if cell {operator} With: result.append(self[index])")
 				final=type(self)(*result)
 				final._axisnames=self._axisnames
@@ -632,13 +617,13 @@ db.compareMany([4.71,5.36],["<"=","!="],[3,2])
 		return f"Row #{frm} swapped with #{to}"
 	def moveUp(self,row,col):
 		"""Swaps specified item and the item upper, if row equals 0, swaps with last row."""
-		self.swap((row,col),(len(self)-1 if row-1<0 else row-1,col))
+		self.swap((row,col), (len(self)-1 if row < 1 else row-1, col))
 	def moveDown(self,row,col):
 		"""Swaps specified item and the item down, if row equals length, swaps with first row."""
 		self.swap((row,col),(0 if row+1>len(self)-1 else row+1,col))
 	def moveLeft(self,row,col):
 		"""Swaps specified item and the item left, if column equals 0, swaps with last column."""
-		self.swap((row,col),(row,col-1 if col-1>0 else self.columnCount-1))
+		self.swap((row,col), (row, col-1 if col > 1 else self.columnCount-1))
 	def moveRight(self,row,col):
 		"""Swaps specified item and the item right, if row equals length, swaps with first column."""
 		self.swap((row,col),(row,0 if col+1>self.columnCount-1 else col+1))
@@ -648,8 +633,7 @@ class __SubBase__(ValueBase):
 		with open(filePath,"r",encoding=encoding) as file:
 			lines=file.readlines()
 			for row in lines[1:] if FirstLineIsColumnNames else lines:
-				rows=[]
-				for cell in row.split(sep): rows.append(self.__convert__(cell))
+				rows = [self.__convert__(cell) for cell in row.split(sep)]
 				self+=rows
 			if FirstLineIsColumnNames: self._axisnames.extend(lines[0].replace("\n","").split(sep))
 
@@ -669,20 +653,16 @@ class __NumBase__(__SubBase__):
 		return self
 	def median(self,column):
 		"""Returns median value of specified column."""
-		if len(self): return self.percentile(50,column)
-		return None
+		return self.percentile(50,column) if len(self) else None
 	def modes(self,column) -> tuple:
 		"""Returns mode values of specified column in a tuple or None in a tuple."""
-		if len(self):
-			data=self.sortColumn(column)
-			dic={}
-			for item in data: dic[item]=data.count(item)
-			max_=max(dic.values())
-			result=[]
-			for i,j in dic.items():
-				if j==max_: result.append(float(i))
-			return tuple(result)
-		return None,
+		if not len(self):
+			return None,
+		data=self.sortColumn(column)
+		dic = {item: data.count(item) for item in data}
+		max_=max(dic.values())
+		result = [float(i) for i, j in dic.items() if j==max_]
+		return tuple(result)
 	def mean(self,column):
 		"""Returns mean value of specified column."""
 		if len(self):
@@ -691,12 +671,10 @@ class __NumBase__(__SubBase__):
 		return None
 	def min(self,column):
 		"""Returns minimum value of specified column."""
-		if len(self): return float(min(self.sortColumn(column)))
-		return None
+		return float(min(self.sortColumn(column))) if len(self) else None
 	def max(self,column):
 		"""Returns maximum value of specified column."""
-		if len(self): return float(max(self.sortColumn(column)))
-		return None
+		return float(max(self.sortColumn(column))) if len(self) else None
 	def quartiles(self,column):
 		"""Returns a tuple contains first and third quartiles."""
 		if len(self): return self.percentile(25,column),self.percentile(75,column)
@@ -705,15 +683,14 @@ class __NumBase__(__SubBase__):
 		"""Returns percentile value of specified column.
 
 Percent parameter must be in range [0-100]."""
-		if len(self):
-			if percent<0 or percent>100: raise ValueError("Percent parameter must be in range [0-100].")
-			data=self.sortColumn(column)
-			k=(len(data)-1)*percent/100
-			f=int(k)
-			c=int(k)+1 if k!=int(k) else int(k)
-			if f==c: return data[int(k)]
-			return data[int(c)]*(k-f)+data[int(f)]*(c-k)
-		return None
+		if not len(self):
+			return None
+		if percent<0 or percent>100: raise ValueError("Percent parameter must be in range [0-100].")
+		data=self.sortColumn(column)
+		k=(len(data)-1)*percent/100
+		f=int(k)
+		c=int(k)+1 if k!=int(k) else int(k)
+		return data[int(k)] if f==c else data[int(c)]*(k-f) + data[f] * (c-k)
 	def decile(self,decim,column):
 		"""Returns decile value of specified column.
 
@@ -779,8 +756,7 @@ None values will accept as 0."""
 		if axis in ["x",1]: pass
 		elif axis in ["y",0]: data.transpose()
 		else: raise ValueError("Axis must be 'x', 1 or 'y', 0")
-		result=[]
-		for row in data: result.append(sum((0 if cell==None else cell for cell in row)))
+		result = [sum(0 if cell is None else cell for cell in row) for row in data]
 		return tuple(result)
 	def summary(self,column):
 		"""Returns a string data that shows minimum, 1st quarter, median, 3rd quarter, maximum and mean values of specified column."""
@@ -793,38 +769,38 @@ Maximum\t\t: {self.max(column)}
 Mean \t\t: {self.mean(column)}"""
 	def summaries(self,*columns):
 		"""Summary method for seeing more than one column at the same time. Leave arguments blank to get all columns."""
-		if columns==(): columns=self.allColumns
-		result=""
-		for column,name in enumerate(self.columns):
-			result+=f"""\n*** {name} ***
+		if not columns: columns=self.allColumns
+		result = "".join(f"""\n*** {name} ***
 Minimum\t\t: {self.min(column)}
 1st Quarter\t: {self.quartiles(column)[0]}
 Median\t\t: {self.median(column)}
 2ns Quarter\t: {self.quartiles(column)[1]}
 Maximum\t\t: {self.max(column)}
-Mean \t\t: {self.mean(column)}"""
+Mean \t\t: {self.mean(column)}""" for column, name in enumerate(self.columns))
+
 		return result.replace("\n","",1)
 class StrBase(__SubBase__):
 	def __repr__(self): return f"<StrBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<StrBase with no content>"
 	def __convert__(self,input_):
-		try:return None if input_==None else str(input_).strip()
+		try:
+			return None if input_ is None else str(input_).strip()
 		except: return None
 	def compare(self,With:str,operator:str,byColumn:int):
 		"""Compare strings by ascii values.
 
 Operator must be <, <=, ==, !=, >= or >."""
-		if len(self):
-			if operator in ("<","<=","==","!=",">=",">"):
-				With=str(With)
-				result=[]
-				for index,cell in enumerate(self.getColumn(byColumn)):
-					exec(f"if cell {operator} With: result.append(self[index])")
-				final=type(self)(*result)
-				final._axisnames=self._axisnames
-				final._axisbackup=self._axisbackup
-				return final
-			else: raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
-		else: return self
+		if not len(self):
+			return self
+		if operator not in {"<", "<=", "==", "!=", ">=", ">"}:
+			raise ValueError("Operator must be <, <=, ==, !=, >= or >.")
+		With = With
+		for _ in self.getColumn(byColumn):
+			exec(f"if cell {operator} With: result.append(self[index])")
+		result = []
+		final=type(self)(*result)
+		final._axisnames=self._axisnames
+		final._axisbackup=self._axisbackup
+		return final
 class FloatBase(__NumBase__):
 	def __repr__(self): return f"<FloatBase with {len(self)} row"+("s" if len(self)>1 else "")+">" if len(self) else "<FloatBase with no content>"
 	def __convert__(self,input_):
@@ -852,15 +828,16 @@ If columns parameter is [], it applies to all columns."""
 
 Disabling alignment may be faster but uglier for big databases."""
 		if ndigits<1: ndigits=2
-		if prefix!=None: print(str(prefix),end="")
+		if prefix!=None:
+			print(prefix, end="")
 		if align:
-			lencol=[]
-			for col in range(self.columnCount): lencol.append(max(len(max(["None" if i==None else "inf" if i==inf else "-inf" if i==-inf else str(int(i))+"."+"0"*ndigits for i in self.getColumn(col)],key=len)),len(self.columns[col])))
+			lencol = [max(len(max(("None" if i is None else "inf" if i == inf else "-inf" if i == -inf else f"{int(i)}." + "0" * ndigits for i in self.getColumn(col)), key=len)), len(self.columns[col])) for col in range(self.columnCount)]
+
 		lendigit=len(str(len(self)+countingStarts))
 		print(self.__repr__()+"\nItems = [")
 		if len(self):
 			if align:
-				print(f" * [ ".rjust(lendigit+4),end="")
+				print(" * [ ".rjust(lendigit+4), end="")
 				for data,lc in zip(self.columns,lencol):
 					print(f"{data}".center(lc),end="" if data==self.columns[-1] else " | ")
 				print(" ]")
@@ -876,9 +853,10 @@ Disabling alignment may be faster but uglier for big databases."""
 					print(f" {n+countingStarts} [ ".rjust(lendigit+4),end="")
 					base=[(self.__convert__(format(j,f".{ndigits}f")) if len(str(j).split(".")[1])>=ndigits else str(j).split(".")[0]+"."+str(j).split(".")[1].ljust(ndigits,"0")) if "." in str(j) else j for j in row]
 					for data in base:
-						print(str(data),end=" " if data==base[-1] else ", ")
+						print(data, end=" " if data==base[-1] else ", ")
 					print("]")
-		if suffix!=None: print("] "+str(suffix))
+		if suffix!=None:
+			print(f"] {suffix}")
 		else: print("]")
 	def head(self,ndigits:int=2,count:int=5,prefix:str="",suffix:str="",align:bool=True,countingStarts:int=0):
 		"""Prints first n rows in a table."""
