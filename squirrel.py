@@ -142,10 +142,10 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		return result
 	def election(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
 		"""Same as query but only keeps results on itself. Others will be deleted."""
-		self._cells=self.query(querystring,exact,caseSensitive,columns)
+		self._cells=self.query(querystring,exact,caseSensitive,columns).data
 	def elections(self,queries:Iterable,exacts:Iterable[bool]=[],caseSensitives:Iterable[bool]=[],columns:Iterable[Iterable[int]]=[]):
 		"""Same as queries but only keeps results on itself. Others will be deleted."""
-		self._cells=self.queries(queries,exacts,caseSensitives,columns)
+		self._cells=self.queries(queries,exacts,caseSensitives,columns).data
 	def fetch(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
 		"""Same as query but return a list object instead of database."""
 		return self.query(querystring,exact,caseSensitive,columns).data
@@ -284,7 +284,7 @@ db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
 			return tuple(result)
 		else: return []
 	def addCsv(self,filePath:str,FirstLineIsColumnNames=True,sep:str=",",encoding:str="UTF-8"):
-		"""Adds data in a csv formatted file to database. This method can update colum names."""
+		"""Adds data in a csv formatted file to database. This method can update column names."""
 		try:
 			with open(filePath,"r",encoding=encoding) as file:
 				lines=file.readlines()
