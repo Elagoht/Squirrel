@@ -136,8 +136,10 @@ IntBase and FloatBase classes has more methods than other classes. That methods 
 |         Feature          |                     Example                    |
 | ------------------------ | ---------------------------------------------- |
 | count                    | Counts specified value.                        |
-| query                    | Searchs values matched with quert string.      |
+| query                    | Searchs values matched with query string.      |
 | multiple query           | Applies multiple queries.                      |
+| regex query              | Searchs values matched with regex query.       |
+| multiple regex query     | Applies multiple regex queries.                |
 | election                 | Just keep query results.                       |
 | multiple election        | Just keep multiple query result.               |
 | fetch                    | Gives search result as list objects.           |
@@ -218,6 +220,20 @@ Items = [
  * [   Name   | ID ]
  0 [ "Furkan" | 21 ]
  1 [ 10       | 20 ]
+]
+```
+
+### RegexQuery -> Valuebase | StrBase | IntBase | FloatBase
+
+```py
+db.regexQuery("^\d",[0]).print()
+
+# Output
+
+<ValueBase with 1 row>
+Items = [
+ * [ Name | ID ]
+ 0 [ 10   | 20 ]
 ]
 ```
 
@@ -514,11 +530,14 @@ Items = [
 ### Apply -> None
 
 ```py
-db.apply(lambda x:pow(x,2) if x%2 else -x,[])
+db.apply(lambda x,y: pow(x,2) if x%2 else -x,[])
 
-# Empty list for applying all columns. Simply doing not fill this parameter doas same.
+# Empty list for applying all columns. Simply doing not fill this parameter does same. 
 
 # It means if the value is odd, take square, else multiply with minus one.
+
+# The "x" refers to input, the "y" refers to row number. You should pass the variable even if you not use it.
+
 db.print()
 
 #Output

@@ -56,3 +56,11 @@
 * MoveUp, moveDown, moveLeft, moreRight method added to use swap method faster.
 * Election method added, same as query but inplace.
 * Elections method added, same as queries but inplace.
+
+# v0.2 "To Regex or Not To Regex"
+
+* RegexQuery and regexQueries methods added to make queries via regex matches.
+* RegexElection and regexElections methods added to make elections via regex matches.
+* Election methods fixed.
+* Apply method now supports a second parameter to refer row number.
+* Expand method added to add more columns on existing database.
