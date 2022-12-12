@@ -6,7 +6,7 @@ My GitHub profile: https://github.com/Elagoht
 from typing import Iterable, Tuple
 from pickle import dump, dumps, load, loads
 from base64 import b64encode, b64decode
-from re import compile, finditer
+from re import search, A, I, S
 
 inf=float("inf")
 pi=3.141592653589793
@@ -135,6 +135,37 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		result=self
 		for query,exact,case,column in zip(queries,exacts,caseSensitives,columns): result=result.query(query,exact,case,column)
 		return result
+	def regexQuery(self,regex="",columns:Iterable[int]=[],flags:str=""):
+		r"""Let you search something in database via regular expression. Returns same type of database. 
+
+Only ASCII (A), IGNORECASE (I) and DOTALL (S) flags are allowed. You can add them via writing into a string such as "ais", "ASI" etc. 
+
+I.e (email validation):
+
+db.regexQuery(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",[db.c("E-mail")],"i")
+    """
+		result=[]
+		qryCol=[]
+		if columns!=[]:
+			for row in self._cells:
+				qryRow=[row[column] for column in columns]
+				qryCol.append(qryRow)
+		else: qryCol=self._cells
+		_flags=0
+		for flag in flags:
+			flag=flag.upper()
+			if flag=="A": _flags|=A
+			if flag=="I": _flags|=I
+			if flag=="S": _flags|=S
+			if flag not in "AIS": raise ValueError("Flags must be one of them: A, I, S.")
+		for index, cell in enumerate(qryCol):
+			if flags != None:
+				result.extend(self._cells[index] for item in cell if search(regex,str(item),_flags))
+			else:
+				result.extend(self._cells[index] for item in cell if search(regex,str(item)))
+		final=type(self)(*result)
+		final._axisnames=self._axisnames
+		return final
 	def election(self,querystring="",exact:bool=False,caseSensitive:bool=False,columns:Iterable[int]=[]):
 		"""Same as query but only keeps results on itself. Others will be deleted."""
 		self._cells=self.query(querystring,exact,caseSensitive,columns).data
@@ -161,7 +192,7 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 	def __setitem__(self,index,val):
 		if len(self):
 			try:
-				result = [self.__convert__(item) for item in val]
+				result=[self.__convert__(item) for item in val]
 				self._cells[index]=result
 			except: raise TypeError("Items parameter must be iterable")
 		return self
@@ -191,7 +222,7 @@ db.queries(["some","thing"],[True,False],[False,False],[[],[1]])"""
 		except: raise TypeError("Items parameter must be iterable")
 	def __sub__(self,item):
 		check=self.indexof(item)
-		if check > -1 and item != None:
+		if check > -1 and item!=None:
 			del self._cells[check]
 		return self
 	def add(self,*items:Iterable):
@@ -248,12 +279,12 @@ db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
 	def columnCount(self):
 		"""Basically, retuns the column count."""
 		if len(self):
-			lens = [len(i) for i in self._cells]
+			lens=[len(i) for i in self._cells]
 			return max(lens)
 		else: return 0
 	def getColumns(self,*columns):
 		"""Returns data in specified columns as lists in a list."""
-		if self.columnCount <= max(columns):
+		if self.columnCount<=max(columns):
 			return self
 		result=[]
 		for cell in columns:
@@ -265,7 +296,7 @@ db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
 		return type(self)(*result)
 	def getColumn(self,column:int):
 		"""Returns data in specified columns as a list."""
-		if self.columnCount <= column:
+		if self.columnCount<=column:
 			return []
 		result=[]
 		for rows in self._cells:
@@ -282,9 +313,11 @@ db.sortByKey(lambda x:x[0].title() if type(x[0])==str else x[0])
 					for cell in row.split(sep):
 						try:
 							try:
-								float(cell)
-								if float(cell)==int(cell): rows.append(int(cell))
-								else: rows.append(float(cell))
+								if "+" not in cell:
+									float(cell)
+									if float(cell)==int(cell): rows.append(int(cell))
+									else: rows.append(float(cell))
+								else: rows.append(cell.strip())
 							except:
 								str(cell)
 								rows.append(cell.strip())
@@ -351,15 +384,15 @@ This will make your column names title formatted."""
 			count=self.columnCount*len(self)
 		for rowind,row in enumerate(self._cells):
 			for cellind,cell in enumerate(row):
-				if mode == -1 and str(old) in str(cell):
+				if mode==-1 and str(old) in str(cell):
 					self[rowind][cellind]=self.__convert__(new)
 					nth+=1
 					if nth>=count: break
-				if mode == 0 and cell == old:
+				if mode==0 and cell==old:
 					self[rowind][cellind]=self.__convert__(new)
 					nth+=1
 					if nth>=count: break
-				if mode == 1 and str(cell) == str(old):
+				if mode==1 and str(cell) ==str(old):
 					self[rowind][cellind]=self.__convert__(new)
 					nth+=1
 					if nth>=count: break
@@ -387,7 +420,7 @@ This will make your column names title formatted."""
 		if len(self):
 			rows=list(range(len(self)))
 			rows.reverse()
-			transformed = [self._cells[i] for i in rows]
+			transformed=[self._cells[i] for i in rows]
 			if inPlace: self._cells=transformed
 			else: return type(self)(*transformed)
 		elif not inPlace: return self
@@ -440,7 +473,7 @@ Disabling alignment may be faster but uglier for big databases."""
 		if prefix!=None:
 			print(prefix, end="")
 		if align:
-			lencol = [max(len(max((str(i) if type(i) != str else f'"{i}"' for i in self.getColumn(col)), key=len)), len(self.columns[col])) for col in range(self.columnCount)]
+			lencol=[max(len(max((str(i) if type(i)!=str else f'"{i}"' for i in self.getColumn(col)), key=len)), len(self.columns[col])) for col in range(self.columnCount)]
 
 		lendigit=len(str(len(self)+countingStarts))
 		print(self.__repr__()+"\nItems = [")
@@ -556,7 +589,7 @@ Operator must be a string and one of <, <=, ==, !=, >= or >."""
 		if len(self):
 			if operator.strip() in {"<", "<=", "==", "!=", ">=", ">"}:
 				try:
-					With = With
+					With=float(With)
 				except: raise TypeError("With parameter must be able to convert float type.")
 				result=[]
 				for _ in self.getColumn(byColumn):
