@@ -188,9 +188,9 @@ db.regexQuery(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",[db.c("E-mail")],"i")
         # Get regex matches
         for index, row in enumerate(qryCol):
             if flags:
-                if any(bool(search(regex, cell, _flags)) for cell in row):
+                if any(bool(search(regex, str(cell), _flags)) for cell in row):
                     result.append(self[index])
-            elif any(bool(search(regex, cell)) for cell in row):
+            elif any(bool(search(regex, str(cell))) for cell in row):
                 result.append(self[index])
 
         # Prepare final result
