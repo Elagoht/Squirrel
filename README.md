@@ -1,5 +1,8 @@
 # Squirrel Module
 
+![Python](https://shields.io/badge/Python-Module-3776AB?logo=python&logoColor=white&style=for-the-badge)<br/>
+![Data Manipulation](https://shields.io/badge/Data-Manipulation-E9568E?logo=alwaysdata&logoColor=white&style=for-the-badge)
+
 ## Table of Content
 
 1. [Introduction](#0)
